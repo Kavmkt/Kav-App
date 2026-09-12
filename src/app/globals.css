@@ -54,10 +54,25 @@ body {
   border-radius: 999px;
 }
 
-/* Autofill do Chrome insiste num fundo branco sólido — força a manter o
-   estilo "glass" dos inputs mesmo depois do navegador preencher o campo. */
-input:-webkit-autofill {
-  -webkit-text-fill-color: var(--foreground);
-  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.06) inset;
-  transition: background-color 9999s ease-in-out 0s;
+/*
+ * Autofill do Chrome insiste num fundo claro sólido (lavanda/branco) e por
+ * baixo do nosso texto claro isso vira "texto fantasma" ilegível — foi
+ * exatamente esse bug reportado no /login. A causa era que o box-shadow
+ * inset abaixo usava uma cor quase transparente (6% de branco), que não é
+ * opaca o suficiente pra realmente cobrir o fundo nativo do autofill.
+ * Usar uma cor sólida (--surface-solid) resolve de vez; os quatro estados
+ * (padrão/hover/focus/active) e o !important são necessários porque a
+ * folha de estilo interna do Chrome pro autofill tem prioridade alta.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--foreground) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface-solid) inset !important;
+  box-shadow: 0 0 0px 1000px var(--surface-solid) inset !important;
+  caret-color: var(--foreground);
+  transition:
+    background-color 9999s ease-in-out 0s,
+    color 9999s ease-in-out 0s;
 }

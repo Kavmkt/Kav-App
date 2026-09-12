@@ -21,7 +21,16 @@ conteúdo dos cursos.
   posts, campanhas (Meta Ads) e cursos.
 - **Admin** (agência) acessa `/admin`: cria/gerencia clientes (isso já gera
   o login do cliente com uma senha temporária), configura a integração Meta
-  por cliente e gerencia os cursos (módulos e aulas).
+  por cliente e gerencia os cursos (módulos e aulas). Login padrão criado
+  pelo seed: `admin@kavapp.com` / `demo1234` — troque essa senha em produção
+  (veja "Trocar senha" abaixo).
+- **Trocar senha** (`/account`, link "Trocar senha" no menu, ou o ícone de
+  conta no topo em telas pequenas): qualquer usuário logado — cliente ou
+  admin — pode trocar a própria senha a qualquer momento, sem depender de
+  ninguém. Pede a senha atual antes de aceitar a nova (`changePasswordAction`
+  em `src/lib/auth/actions.ts`). Continua existindo, à parte, o botão
+  "Gerar nova senha" no admin (`/admin/clients/[id]`) para quando o cliente
+  esquecer a própria senha.
 - Todo cliente novo já nasce com **dados de demonstração** realistas
   (seguidores, posts, campanhas) gerados automaticamente, para que o painel
   nunca fique vazio enquanto a integração real não é configurada.

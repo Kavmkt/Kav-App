@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { LogOut } from "lucide-react";
+import { LogOut, KeyRound, UserCircle } from "lucide-react";
 import { initials } from "@/lib/utils";
 import { NavLink, MobileTabLink } from "./NavLink";
 import { Logo } from "./Logo";
@@ -91,6 +91,13 @@ export function AppShell({
               </p>
             </div>
           </div>
+          <Link
+            href="/account"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-foreground/55 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+          >
+            <KeyRound size={16} />
+            Trocar senha
+          </Link>
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
@@ -109,7 +116,18 @@ export function AppShell({
             <Logo variant="compact" />
           </Link>
           <div className="hidden md:block" />
-          <div className="flex items-center gap-3">{headerActions}</div>
+          <div className="flex items-center gap-3">
+            {headerActions}
+            {/* Sidebar (com "Trocar senha"/"Sair") fica oculta no mobile —
+                esse botão é o único jeito de chegar lá numa tela pequena. */}
+            <Link
+              href="/account"
+              aria-label="Conta"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border-subtle text-foreground/60 transition-colors hover:bg-white/[0.06] hover:text-foreground md:hidden"
+            >
+              <UserCircle size={18} />
+            </Link>
+          </div>
         </header>
         <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-8">
           {children}
