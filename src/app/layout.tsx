@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kav Marketing e Performance — Métricas e Cursos",
+  title: "Kav Marketing e Performance — Métricas",
   description:
-    "Acompanhe em tempo real seguidores, posts e investimento em campanhas, além de acessar a área de cursos.",
+    "Acompanhe em tempo real seguidores, posts e investimento em campanhas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,11 +1,8 @@
-import { LayoutDashboard, GraduationCap } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { requireAdminSession } from "@/lib/auth/guards";
 import { AppShell } from "@/components/layout/AppShell";
 
-const navItems = [
-  { href: "/admin", label: "Clientes", icon: LayoutDashboard },
-  { href: "/admin/courses", label: "Cursos", icon: GraduationCap },
-];
+const navItems = [{ href: "/admin", label: "Clientes", icon: LayoutDashboard }];
 
 export default async function AdminLayout({
   children,

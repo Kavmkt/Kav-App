@@ -2,9 +2,8 @@
 
 Aplicativo web para clientes acompanharem, com login e senha próprios,
 métricas em tempo real de redes sociais (Instagram) e campanhas de anúncios
-(Meta Ads), além de uma área de cursos. Inclui um painel administrativo para
-a agência cadastrar clientes, gerenciar credenciais de integração e o
-conteúdo dos cursos.
+(Meta Ads). Inclui um painel administrativo para a agência cadastrar
+clientes e gerenciar credenciais de integração.
 
 ## Stack
 
@@ -22,12 +21,12 @@ conteúdo dos cursos.
   acento/espaço), que é o único campo usado pra autenticar
   (`src/lib/auth/actions.ts#loginAction`). O `email` continua existindo no
   schema só como dado de contato, não é mais usado no login.
-- **Cliente** acessa `/dashboard`: visão geral, posts, campanhas (Meta Ads)
-  e cursos.
+- **Cliente** acessa `/dashboard`: visão geral, posts e campanhas (Meta
+  Ads).
 - **Admin** (agência) acessa `/admin`: cria/gerencia clientes (define o
   `username` do cliente e, opcionalmente, uma senha específica — ou deixa
-  gerar uma temporária), configura a integração Meta por cliente e
-  gerencia os cursos (módulos e aulas). Na página do cliente
+  gerar uma temporária) e configura a integração Meta por cliente. Na
+  página do cliente
   (`/admin/clients/[id]` → "Acesso do cliente") dá pra editar o username,
   "Definir senha" (uma senha específica, permanente) ou "Gerar nova senha"
   (temporária aleatória, pra quando o cliente esquecer a dele). Login do
@@ -109,7 +108,6 @@ conteúdo dos cursos.
    - 1 usuário admin: `admin@kavapp.com` / `demo1234`
    - 3 clientes de demonstração (senha `demo1234` para todos), cada um com
      30 dias de métricas, posts e campanhas simuladas
-   - 1 curso de exemplo com 3 módulos e 5 aulas
 
    > **Importante:** troque essas senhas de demonstração antes de usar em
    > produção (o painel admin permite gerar uma nova senha para qualquer
@@ -188,9 +186,8 @@ reais.
 ```
 prisma/
   schema.prisma        # Modelos: User, Client, MetricSnapshot, Post,
-                        # AdCampaign, AdSpendSnapshot, Course, Module,
-                        # Lesson, LessonProgress
-  seed.ts               # Popula admin + clientes + curso de exemplo
+                        # AdCampaign, AdSpendSnapshot
+  seed.ts               # Popula admin + clientes de demonstração
 
 src/
   app/
@@ -209,7 +206,6 @@ src/
 
 - Fluxo de "esqueci minha senha" para o cliente (hoje o reset é feito pelo
   admin)
-- Upload de vídeo/anexos para as aulas (hoje aceita uma URL de vídeo)
 - Webhooks da Meta para atualização em tempo real real (em vez de polling)
 - Métricas de Insights por post (alcance, impressões, salvamentos,
   compartilhamentos) — hoje só curtidas/comentários vêm da API real

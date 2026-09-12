@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
 import { syncClient } from "./sync";
 
 /**
@@ -21,29 +20,4 @@ export async function syncClientAction(clientId: string) {
   revalidatePath("/dashboard");
   revalidatePath(`/admin/clients/${clientId}`);
   return result;
-}
-
-export async function toggleLessonCompleteAction(
-  lessonId: string,
-  courseSlug: string,
-  completed: boolean
-) {
-  const session = await requireSession();
-
-  if (completed) {
-    await prisma.lessonProgress.upsert({
-      where: { userId_lessonId: { userId: session.userId, lessonId } },
-      create: { userId: session.userId, lessonId },
-      update: {},
-    });
-  } else {
-    await prisma.lessonProgress
-      .delete({
-        where: { userId_lessonId: { userId: session.userId, lessonId } },
-      })
-      .catch(() => null);
-  }
-
-  revalidatePath(`/dashboard/courses/${courseSlug}`);
-  revalidatePath("/dashboard/courses");
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Megaphone, Wallet, GraduationCap, Plus } from "lucide-react";
+import { Users, Megaphone, Wallet, Plus } from "lucide-react";
 import { getAdminClients, getAdminOverview } from "@/lib/data/queries";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -27,7 +27,7 @@ export default async function AdminOverviewPage() {
         </LinkButton>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Clientes ativos" value={String(overview.clientsCount)} icon={Users} />
         <StatCard
           label="Campanhas ativas"
@@ -39,12 +39,6 @@ export default async function AdminOverviewPage() {
           value={formatCurrency(overview.totalSpend)}
           icon={Wallet}
           tone="amber"
-        />
-        <StatCard
-          label="Cursos publicados"
-          value={String(overview.coursesCount)}
-          icon={GraduationCap}
-          tone="green"
         />
       </div>
 

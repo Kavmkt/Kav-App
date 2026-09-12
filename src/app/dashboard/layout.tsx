@@ -1,4 +1,4 @@
-import { LayoutDashboard, Image as ImageIcon, Megaphone, GraduationCap } from "lucide-react";
+import { LayoutDashboard, Image as ImageIcon, Megaphone } from "lucide-react";
 import { requireClientSession } from "@/lib/auth/guards";
 import { getClientById } from "@/lib/data/queries";
 import { AppShell } from "@/components/layout/AppShell";
@@ -9,7 +9,6 @@ const navItems = [
   { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
   { href: "/dashboard/posts", label: "Posts", icon: ImageIcon },
   { href: "/dashboard/ads", label: "Campanhas", icon: Megaphone },
-  { href: "/dashboard/courses", label: "Cursos", icon: GraduationCap },
 ];
 
 export default async function DashboardLayout({

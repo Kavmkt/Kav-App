@@ -170,62 +170,6 @@ export async function getClientCampaigns(
   return { campaigns, adSeries, rangeDays };
 }
 
-export async function getCoursesForUser(userId: string) {
-  const courses = await prisma.course.findMany({
-    where: { published: true },
-    orderBy: { order: "asc" },
-    include: {
-      modules: {
-        orderBy: { order: "asc" },
-        include: { lessons: { orderBy: { order: "asc" } } },
-      },
-    },
-  });
-
-  const progress = await prisma.lessonProgress.findMany({
-    where: { userId },
-    select: { lessonId: true },
-  });
-  const completedLessonIds = new Set(progress.map((p) => p.lessonId));
-
-  return courses.map((course) => {
-    const lessons = course.modules.flatMap((m) => m.lessons);
-    const completedCount = lessons.filter((l) =>
-      completedLessonIds.has(l.id)
-    ).length;
-    return {
-      ...course,
-      totalLessons: lessons.length,
-      completedCount,
-      progressPct:
-        lessons.length > 0
-          ? Math.round((completedCount / lessons.length) * 100)
-          : 0,
-    };
-  });
-}
-
-export async function getCourseDetail(courseSlug: string, userId: string) {
-  const course = await prisma.course.findUnique({
-    where: { slug: courseSlug },
-    include: {
-      modules: {
-        orderBy: { order: "asc" },
-        include: { lessons: { orderBy: { order: "asc" } } },
-      },
-    },
-  });
-  if (!course) return null;
-
-  const progress = await prisma.lessonProgress.findMany({
-    where: { userId },
-    select: { lessonId: true },
-  });
-  const completedLessonIds = new Set(progress.map((p) => p.lessonId));
-
-  return { course, completedLessonIds };
-}
-
 export async function getAdminClients() {
   return prisma.client.findMany({
     orderBy: { createdAt: "desc" },
@@ -237,17 +181,14 @@ export async function getAdminClients() {
 }
 
 export async function getAdminOverview() {
-  const [clientsCount, activeCampaigns, spendAgg, coursesCount] =
-    await Promise.all([
-      prisma.client.count(),
-      prisma.adCampaign.count({ where: { status: "ACTIVE" } }),
-      prisma.adSpendSnapshot.aggregate({ _sum: { spend: true } }),
-      prisma.course.count(),
-    ]);
+  const [clientsCount, activeCampaigns, spendAgg] = await Promise.all([
+    prisma.client.count(),
+    prisma.adCampaign.count({ where: { status: "ACTIVE" } }),
+    prisma.adSpendSnapshot.aggregate({ _sum: { spend: true } }),
+  ]);
   return {
     clientsCount,
     activeCampaigns,
     totalSpend: spendAgg._sum.spend ?? 0,
-    coursesCount,
   };
 }

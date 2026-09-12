@@ -17,7 +17,7 @@ export default async function LoginPage() {
           <div className="mb-8 flex flex-col items-center text-center">
             <Logo variant="full" />
             <p className="mt-4 text-sm text-foreground/55">
-              Acompanhe suas métricas e cursos em um só lugar.
+              Acompanhe suas métricas em um só lugar.
             </p>
           </div>
           <div className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-[0_8px_30px_-14px_rgba(0,0,0,0.6)] backdrop-blur-xl">
