@@ -46,6 +46,24 @@ export function formatDateTime(date: Date | string): string {
   }).format(d);
 }
 
+/**
+ * Normaliza um @ do Instagram digitado/colado de qualquer jeito (com @,
+ * sem @, ou até a URL completa do perfil) para sempre guardar só o
+ * "nome de usuário" puro, sem o @. Isso evita duplicar o "@" quando a
+ * tela de exibição prefixa o valor (ex: "@" + "@usuario" = "@@usuario").
+ */
+export function normalizeInstagramHandle(input: string): string {
+  let value = input.trim();
+  const urlMatch = value.match(/instagram\.com\/([^/?#]+)/i);
+  if (urlMatch) value = urlMatch[1];
+  return value.replace(/^@+/, "");
+}
+
+/** Formata um @ do Instagram já normalizado para exibição (ex: "usuario" -> "@usuario"). */
+export function formatInstagramHandle(handle: string): string {
+  return `@${handle.replace(/^@+/, "")}`;
+}
+
 export function initials(name: string): string {
   return name
     .split(" ")

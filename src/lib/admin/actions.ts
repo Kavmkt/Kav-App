@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, generateTempPassword } from "@/lib/auth/password";
+import { normalizeInstagramHandle } from "@/lib/utils";
 import {
   generateAdSeries,
   generateCampaigns,
@@ -101,8 +102,10 @@ export async function createClientAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
-  const { companyName, contactEmail, instagramHandle, contactName } =
-    parsed.data;
+  const { companyName, contactEmail, contactName } = parsed.data;
+  const instagramHandle = parsed.data.instagramHandle
+    ? normalizeInstagramHandle(parsed.data.instagramHandle)
+    : undefined;
   const email = contactEmail.toLowerCase().trim();
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -218,7 +221,9 @@ export async function updateClientMetaAction(
   await prisma.client.update({
     where: { id: clientId },
     data: {
-      instagramHandle: parsed.data.instagramHandle || null,
+      instagramHandle: parsed.data.instagramHandle
+        ? normalizeInstagramHandle(parsed.data.instagramHandle)
+        : null,
       instagramUserId: parsed.data.instagramUserId || null,
       metaAdAccountId: parsed.data.metaAdAccountId || null,
       metaAccessToken: parsed.data.metaAccessToken || null,

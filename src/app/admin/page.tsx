@@ -5,7 +5,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { formatCurrency, initials } from "@/lib/utils";
+import { formatCurrency, formatInstagramHandle, initials } from "@/lib/utils";
 
 export default async function AdminOverviewPage() {
   const [overview, clients] = await Promise.all([
@@ -81,7 +81,9 @@ export default async function AdminOverviewPage() {
                     </Link>
                   </td>
                   <td className="py-3 pr-4 text-foreground/60">
-                    {client.instagramHandle ? `@${client.instagramHandle}` : "—"}
+                    {client.instagramHandle
+                      ? formatInstagramHandle(client.instagramHandle)
+                      : "—"}
                   </td>
                   <td className="py-3 pr-4 text-foreground/60">{client.plan}</td>
                   <td className="py-3 pr-4">
