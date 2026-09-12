@@ -35,6 +35,13 @@ enum PostType {
 
 model User {
   id                 String   @id @default(cuid())
+  /// Identificador de login — o app autentica por usuário+senha, não por
+  /// e-mail. Sempre gravado normalizado (minúsculas, sem acento/espaço)
+  /// via normalizeUsername() em src/lib/utils.ts.
+  username           String   @unique
+  /// Só um dado de contato agora (opcional pra próximos cadastros, mas
+  /// segue obrigatório no schema pra não quebrar linhas antigas) — não é
+  /// mais usado pra login.
   email              String   @unique
   passwordHash       String
   name               String

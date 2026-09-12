@@ -11,6 +11,7 @@ export type SessionPayload = {
   userId: string;
   role: SessionRole;
   name: string;
+  username: string;
   email: string;
   clientId: string | null;
 };
@@ -42,12 +43,14 @@ export async function verifySessionToken(
       typeof payload.userId === "string" &&
       typeof payload.role === "string" &&
       typeof payload.name === "string" &&
+      typeof payload.username === "string" &&
       typeof payload.email === "string"
     ) {
       return {
         userId: payload.userId,
         role: payload.role as SessionRole,
         name: payload.name,
+        username: payload.username,
         email: payload.email,
         clientId: (payload.clientId as string | null) ?? null,
       };

@@ -34,16 +34,18 @@ export function CreateClientForm() {
         </div>
         <p className="text-sm text-foreground/60">
           Envie estes dados de acesso para o cliente. Por segurança, a senha
-          não ficará visível novamente — você pode gerar uma nova a qualquer
+          não ficará visível novamente — você pode trocá-la a qualquer
           momento na página do cliente.
         </p>
         <div className="space-y-2 rounded-xl border border-border-subtle bg-white/[0.05] p-4 font-mono text-sm">
           <p>
-            <span className="text-foreground/50">E-mail:</span>{" "}
-            {state.success.email}
+            <span className="text-foreground/50">Usuário:</span>{" "}
+            {state.success.username}
           </p>
           <p>
-            <span className="text-foreground/50">Senha temporária:</span>{" "}
+            <span className="text-foreground/50">
+              {state.success.passwordWasChosen ? "Senha:" : "Senha temporária:"}
+            </span>{" "}
             {state.success.tempPassword}
           </p>
         </div>
@@ -89,9 +91,36 @@ export function CreateClientForm() {
           className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground/80">
+            Usuário (login)
+          </label>
+          <input
+            name="username"
+            required
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="ex: lojadamaria"
+            className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground/80">
+            Senha (opcional)
+          </label>
+          <input
+            type="text"
+            name="password"
+            placeholder="Deixe em branco pra gerar uma"
+            className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </div>
+      </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground/80">
-          E-mail de acesso (login)
+          E-mail de contato
         </label>
         <input
           type="email"
@@ -118,9 +147,11 @@ export function CreateClientForm() {
       )}
       <p className="flex items-start gap-1.5 text-xs text-foreground/50">
         <Copy size={13} className="mt-0.5 shrink-0" />
-        Uma senha temporária será gerada automaticamente e o painel já
-        nascerá com dados de demonstração — assim que você configurar a
-        integração Meta, os dados reais assumem o lugar.
+        O login do cliente é feito por usuário e senha — o e-mail é só um
+        dado de contato. Se você não definir uma senha, uma temporária é
+        gerada automaticamente. O painel já nasce com dados de demonstração
+        — assim que você configurar a integração Meta, os dados reais
+        assumem o lugar.
       </p>
       <SubmitButton />
     </form>

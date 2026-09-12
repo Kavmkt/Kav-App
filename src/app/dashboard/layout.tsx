@@ -27,7 +27,7 @@ export default async function DashboardLayout({
       workspaceSubtitle={client?.plan ? `Plano ${client.plan}` : undefined}
       workspaceLogoUrl={client?.logoUrl}
       userName={session.name}
-      userSubtitle={client?.plan ? `Plano ${client.plan}` : session.email}
+      userSubtitle={client?.plan ? `Plano ${client.plan}` : session.username}
       headerActions={<RefreshButton clientId={session.clientId} />}
     >
       <AutoSync clientId={session.clientId} />

@@ -64,6 +64,21 @@ export function formatInstagramHandle(handle: string): string {
   return `@${handle.replace(/^@+/, "")}`;
 }
 
+/**
+ * Normaliza um nome de usuário (login) digitado pelo admin: minúsculas,
+ * sem espaços/acentos, só letras/números/ponto/hífen/underscore. Guardar
+ * sempre normalizado evita duplicar cadastro por causa de maiúscula ou
+ * evita "usuário não encontrado" no login por causa de espaço colado.
+ */
+export function normalizeUsername(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // remove acentos
+    .replace(/[^a-z0-9._-]/g, "");
+}
+
 export function initials(name: string): string {
   return name
     .split(" ")

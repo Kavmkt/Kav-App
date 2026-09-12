@@ -19,6 +19,11 @@ export async function getClientById(clientId: string) {
   return prisma.client.findUnique({ where: { id: clientId } });
 }
 
+/** O usuário de login associado a um cliente (username/e-mail/senha). */
+export async function getClientUser(clientId: string) {
+  return prisma.user.findFirst({ where: { clientId } });
+}
+
 /**
  * Nunca misturamos série real com série de demonstração no mesmo gráfico —
  * isso criaria descontinuidades absurdas (ex: cair de "seguidores fictícios"

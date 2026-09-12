@@ -12,6 +12,7 @@ const prisma = new PrismaClient();
 type DemoClientSpec = {
   companyName: string;
   slug: string;
+  username: string;
   contactEmail: string;
   instagramHandle: string;
   logoColor: string;
@@ -25,6 +26,7 @@ const DEMO_CLIENTS: DemoClientSpec[] = [
   {
     companyName: "Loja da Maria",
     slug: "loja-da-maria",
+    username: "lojadamaria",
     contactEmail: "cliente@lojadamaria.com",
     instagramHandle: "lojadamaria",
     logoColor: "#5b4dfb",
@@ -36,6 +38,7 @@ const DEMO_CLIENTS: DemoClientSpec[] = [
   {
     companyName: "Studio Bella Estética",
     slug: "studio-bella-estetica",
+    username: "studiobella",
     contactEmail: "cliente@studiobella.com",
     instagramHandle: "studiobella.estetica",
     logoColor: "#ec4899",
@@ -47,6 +50,7 @@ const DEMO_CLIENTS: DemoClientSpec[] = [
   {
     companyName: "Academia Vigor",
     slug: "academia-vigor",
+    username: "academiavigor",
     contactEmail: "cliente@academiavigor.com",
     instagramHandle: "academiavigor",
     logoColor: "#10b981",
@@ -63,11 +67,13 @@ async function main() {
   console.log("Seeding banco de dados...");
 
   // --- Admin ---
+  const adminUsername = "admin";
   const adminEmail = "admin@kavapp.com";
   const adminPasswordHash = await hashPassword(DEMO_PASSWORD);
   await prisma.user.upsert({
     where: { email: adminEmail },
     create: {
+      username: adminUsername,
       email: adminEmail,
       name: "Administrador Kav",
       passwordHash: adminPasswordHash,
@@ -76,7 +82,35 @@ async function main() {
     },
     update: {},
   });
-  console.log(`Admin: ${adminEmail} / ${DEMO_PASSWORD}`);
+  console.log(`Admin: usuário "${adminUsername}" / ${DEMO_PASSWORD}`);
+
+  // --- Migração pontual: cliente real Pontocar, que hoje ainda loga com o
+  // e-mail pessoal do responsável pela agência. A migration.sql (rodada
+  // logo antes deste seed, em todo deploy) já preenche um username
+  // PROVISÓRIO pra essa linha (derivado do e-mail, no formato
+  // "kesleysampaio03-xxxxxx") só pra satisfazer a constraint NOT NULL —
+  // usamos isso aqui como sinal de "essa conta ainda não foi migrada pro
+  // usuário/senha definitivos". Assim que rodar uma vez e virar "pontocar",
+  // esse padrão nunca mais bate, então isso nunca roda de novo — nem se o
+  // admin resetar a senha dele depois por outro motivo.
+  const PONTOCAR_LEGACY_EMAIL = "kesleysampaio03@gmail.com";
+  const pontocarUser = await prisma.user.findUnique({
+    where: { email: PONTOCAR_LEGACY_EMAIL },
+  });
+  const looksLikeProvisionalUsername = /^kesleysampaio03-[a-z0-9]+$/i.test(
+    pontocarUser?.username ?? ""
+  );
+  if (pontocarUser && looksLikeProvisionalUsername) {
+    await prisma.user.update({
+      where: { id: pontocarUser.id },
+      data: {
+        username: "pontocar",
+        passwordHash: await hashPassword("pontocar123"),
+        mustChangePassword: false,
+      },
+    });
+    console.log('Cliente Pontocar migrado: usuário "pontocar" / senha "pontocar123".');
+  }
 
   // --- Clientes de demonstração ---
   for (const spec of DEMO_CLIENTS) {
@@ -99,6 +133,7 @@ async function main() {
         plan: spec.plan,
         users: {
           create: {
+            username: spec.username,
             email: spec.contactEmail,
             name: spec.companyName,
             passwordHash,
@@ -141,7 +176,7 @@ async function main() {
     });
 
     console.log(
-      `Cliente criado: ${spec.companyName} (${spec.contactEmail} / ${DEMO_PASSWORD})`
+      `Cliente criado: ${spec.companyName} (usuário "${spec.username}" / ${DEMO_PASSWORD})`
     );
   }
 

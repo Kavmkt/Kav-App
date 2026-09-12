@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 export function ResetPasswordButton({ clientId }: { clientId: string }) {
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{
-    email: string;
+    username: string;
     tempPassword: string;
   } | null>(null);
 
@@ -27,7 +27,7 @@ export function ResetPasswordButton({ clientId }: { clientId: string }) {
       </Button>
       {result && (
         <div className="rounded-lg border border-border-subtle bg-white/[0.05] p-3 font-mono text-xs">
-          <p>{result.email}</p>
+          <p>{result.username}</p>
           <p className="font-semibold">{result.tempPassword}</p>
         </div>
       )}

@@ -31,7 +31,7 @@ export default async function AccountPage() {
           <p className="text-sm text-foreground/55">
             Logado como{" "}
             <span className="font-medium text-foreground">
-              {session.email}
+              {session.username}
             </span>
           </p>
           <ChangePasswordForm />

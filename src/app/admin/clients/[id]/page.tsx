@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Users, Wallet, Megaphone } from "lucide-react";
-import { getClientById, getClientOverview } from "@/lib/data/queries";
+import { getClientById, getClientOverview, getClientUser } from "@/lib/data/queries";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -10,6 +10,8 @@ import { SpendChart } from "@/components/charts/SpendChart";
 import { RefreshButton } from "@/components/RefreshButton";
 import { ToggleActiveButton } from "@/components/admin/ToggleActiveButton";
 import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
+import { ClientUsernameForm } from "@/components/admin/ClientUsernameForm";
+import { SetClientPasswordForm } from "@/components/admin/SetClientPasswordForm";
 import { MetaCredentialsForm } from "@/components/admin/MetaCredentialsForm";
 import { ClientBrandingForm } from "@/components/admin/ClientBrandingForm";
 import { formatCurrency, formatNumber, initials } from "@/lib/utils";
@@ -23,7 +25,10 @@ export default async function AdminClientDetailPage({
   const client = await getClientById(id);
   if (!client) notFound();
 
-  const overview = await getClientOverview(id);
+  const [overview, clientUser] = await Promise.all([
+    getClientOverview(id),
+    getClientUser(id),
+  ]);
   const metaConfigured = Boolean(
     client.metaAccessToken && (client.instagramUserId || client.metaAdAccountId)
   );
@@ -152,16 +157,34 @@ export default async function AdminClientDetailPage({
           <CardHeader>
             <CardTitle>Acesso do cliente</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm">
-              <p className="text-foreground/50">Login (e-mail)</p>
-              <p className="font-medium">{client.contactEmail}</p>
-            </div>
-            <ResetPasswordButton clientId={client.id} />
-            <p className="text-xs text-foreground/40">
-              Use esta opção se o cliente esqueceu a senha ou se você quer
-              gerar um novo acesso.
-            </p>
+          <CardContent className="space-y-5">
+            {clientUser ? (
+              <>
+                <ClientUsernameForm
+                  clientId={client.id}
+                  initialUsername={clientUser.username}
+                />
+                <div className="text-sm">
+                  <p className="text-foreground/50">E-mail de contato</p>
+                  <p className="font-medium">{clientUser.email}</p>
+                </div>
+                <div className="border-t border-border-subtle pt-4">
+                  <SetClientPasswordForm clientId={client.id} />
+                </div>
+                <div className="border-t border-border-subtle pt-4">
+                  <ResetPasswordButton clientId={client.id} />
+                  <p className="mt-2 text-xs text-foreground/40">
+                    Gera uma senha temporária aleatória — use se o cliente
+                    esqueceu a senha. Prefira &ldquo;Definir senha&rdquo;
+                    acima quando quiser escolher uma credencial específica.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-foreground/50">
+                Nenhum usuário de login encontrado para este cliente.
+              </p>
+            )}
           </CardContent>
         </Card>
 

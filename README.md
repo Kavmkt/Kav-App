@@ -17,13 +17,22 @@ conteúdo dos cursos.
 
 ## Como funciona
 
-- **Cliente** (login: e-mail + senha) acessa `/dashboard`: visão geral,
-  posts, campanhas (Meta Ads) e cursos.
-- **Admin** (agência) acessa `/admin`: cria/gerencia clientes (isso já gera
-  o login do cliente com uma senha temporária), configura a integração Meta
-  por cliente e gerencia os cursos (módulos e aulas). Login padrão criado
-  pelo seed: `admin@kavapp.com` / `demo1234` — troque essa senha em produção
-  (veja "Trocar senha" abaixo).
+- **Login por usuário e senha** (não por e-mail): todo `User` tem um
+  `username` único (`src/lib/utils.ts#normalizeUsername` — minúsculas, sem
+  acento/espaço), que é o único campo usado pra autenticar
+  (`src/lib/auth/actions.ts#loginAction`). O `email` continua existindo no
+  schema só como dado de contato, não é mais usado no login.
+- **Cliente** acessa `/dashboard`: visão geral, posts, campanhas (Meta Ads)
+  e cursos.
+- **Admin** (agência) acessa `/admin`: cria/gerencia clientes (define o
+  `username` do cliente e, opcionalmente, uma senha específica — ou deixa
+  gerar uma temporária), configura a integração Meta por cliente e
+  gerencia os cursos (módulos e aulas). Na página do cliente
+  (`/admin/clients/[id]` → "Acesso do cliente") dá pra editar o username,
+  "Definir senha" (uma senha específica, permanente) ou "Gerar nova senha"
+  (temporária aleatória, pra quando o cliente esquecer a dele). Login do
+  admin criado pelo seed: usuário `admin` / senha `demo1234` — troque essa
+  senha em produção (veja "Trocar senha" abaixo).
 - **Trocar senha** (`/account`, link "Trocar senha" no menu, ou o ícone de
   conta no topo em telas pequenas): qualquer usuário logado — cliente ou
   admin — pode trocar a própria senha a qualquer momento, sem depender de
