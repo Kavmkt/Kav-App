@@ -1,8 +1,9 @@
 import { requireClientSession } from "@/lib/auth/guards";
-import { getClientCampaigns } from "@/lib/data/queries";
+import { getClientCampaigns, parseMetricRangeDays } from "@/lib/data/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { SpendChart } from "@/components/charts/SpendChart";
+import { RangeSwitcher } from "@/components/RangeSwitcher";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
 const objectiveLabels: Record<string, string> = {
@@ -25,25 +26,37 @@ const statusLabel: Record<string, string> = {
   COMPLETED: "Concluída",
 };
 
-export default async function AdsPage() {
+export default async function AdsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
   const session = await requireClientSession();
-  const { campaigns, adSeries } = await getClientCampaigns(session.clientId);
+  const { range } = await searchParams;
+  const rangeDays = parseMetricRangeDays(range);
+  const { campaigns, adSeries } = await getClientCampaigns(
+    session.clientId,
+    rangeDays
+  );
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">
-          Campanhas (Meta Ads)
-        </h1>
-        <p className="mt-1 text-sm text-foreground/60">
-          Investimento e performance das campanhas ativas no Instagram e
-          Facebook.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Campanhas (Meta Ads)
+          </h1>
+          <p className="mt-1 text-sm text-foreground/60">
+            Investimento e performance das campanhas ativas no Instagram e
+            Facebook.
+          </p>
+        </div>
+        <RangeSwitcher basePath="/dashboard/ads" current={rangeDays} />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Investimento diário (30 dias)</CardTitle>
+          <CardTitle>Investimento diário ({rangeDays} dias)</CardTitle>
         </CardHeader>
         <CardContent>
           <SpendChart

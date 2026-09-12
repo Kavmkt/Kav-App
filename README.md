@@ -30,6 +30,18 @@ conteúdo dos cursos.
   configuradas, os dados reais são buscados na Graph API / Marketing API;
   caso contrário, o painel simula uma pequena variação "ao vivo" sobre os
   dados de demonstração.
+- **Filtro de período**: o dashboard (visão geral e campanhas) tem um
+  seletor **7 dias / 30 dias** (`?range=7|30` na URL, via
+  `RangeSwitcher`) que recalcula seguidores, gasto e indicadores para a
+  janela escolhida — implementado como link simples (sem client-side
+  state), então funciona mesmo sem JS e é compartilhável por URL.
+- **Preview de posts**: os cards de post mostram a miniatura real do
+  Instagram (`thumbnail_url` para vídeos/Reels, `media_url` para
+  fotos/carrossel) em vez de sempre exibir um bloco colorido — o gradiente
+  só aparece quando não há imagem real disponível (ex.: dados de
+  demonstração). Clicar em um post abre um modal com a imagem ampliada,
+  legenda completa, números exatos de curtidas/comentários/compartilhamentos
+  e um link "Ver no Instagram" (quando o post tem `permalink`).
 
 ## Configuração
 

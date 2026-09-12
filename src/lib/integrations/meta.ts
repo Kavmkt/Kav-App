@@ -95,6 +95,9 @@ export type InstagramMediaItem = {
   mediaType: string;
   mediaProductType?: string;
   mediaUrl?: string;
+  /// Só vem preenchido pra vídeos/Reels — media_url de vídeo aponta pro
+  /// arquivo em si (não serve como imagem de preview).
+  thumbnailUrl?: string;
   permalink?: string;
   timestamp: string;
   likeCount?: number;
@@ -109,7 +112,7 @@ export async function fetchInstagramMedia(
   const url = new URL(`${GRAPH_BASE_URL}/${instagramUserId}/media`);
   url.searchParams.set(
     "fields",
-    "id,caption,media_type,media_product_type,media_url,permalink,timestamp,like_count,comments_count"
+    "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count"
   );
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("access_token", accessToken);
@@ -128,6 +131,7 @@ export async function fetchInstagramMedia(
       media_type: string;
       media_product_type?: string;
       media_url?: string;
+      thumbnail_url?: string;
       permalink?: string;
       timestamp: string;
       like_count?: number;
@@ -140,6 +144,7 @@ export async function fetchInstagramMedia(
     mediaType: item.media_type,
     mediaProductType: item.media_product_type,
     mediaUrl: item.media_url,
+    thumbnailUrl: item.thumbnail_url,
     permalink: item.permalink,
     timestamp: item.timestamp,
     likeCount: item.like_count,

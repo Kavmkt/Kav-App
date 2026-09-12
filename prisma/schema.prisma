@@ -104,6 +104,10 @@ model Post {
   type        PostType  @default(IMAGE)
   caption     String?
   mediaUrl    String?
+  /// Miniatura própria pra vídeos/Reels (media_url de vídeo aponta pro
+  /// arquivo, não serve como preview de imagem). Nula pra fotos/carrossel,
+  /// onde mediaUrl já é uma imagem.
+  thumbnailUrl String?
   permalink   String?
   likes       Int       @default(0)
   comments    Int       @default(0)

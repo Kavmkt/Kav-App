@@ -1,11 +1,12 @@
 import { Users, Heart, Wallet, Megaphone } from "lucide-react";
 import { requireClientSession } from "@/lib/auth/guards";
-import { getClientOverview } from "@/lib/data/queries";
+import { getClientOverview, parseMetricRangeDays } from "@/lib/data/queries";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { FollowersChart } from "@/components/charts/FollowersChart";
 import { SpendChart } from "@/components/charts/SpendChart";
 import { PostCard } from "@/components/PostCard";
+import { RangeSwitcher } from "@/components/RangeSwitcher";
 import { Badge } from "@/components/ui/Badge";
 import {
   formatCompact,
@@ -15,9 +16,15 @@ import {
 } from "@/lib/utils";
 import Link from "next/link";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
   const session = await requireClientSession();
-  const overview = await getClientOverview(session.clientId);
+  const { range } = await searchParams;
+  const rangeDays = parseMetricRangeDays(range);
+  const overview = await getClientOverview(session.clientId, rangeDays);
   const { latest } = overview;
 
   return (
@@ -36,7 +43,7 @@ export default async function DashboardPage() {
           value={latest ? formatNumber(latest.followers) : "—"}
           icon={Users}
           delta={overview.followerGrowth}
-          deltaLabel="nos últimos 30 dias"
+          deltaLabel={`nos últimos ${rangeDays} dias`}
         />
         <StatCard
           label="Engajamento médio"
@@ -49,7 +56,7 @@ export default async function DashboardPage() {
           tone="green"
         />
         <StatCard
-          label="Investimento (30 dias)"
+          label={`Investimento (${rangeDays} dias)`}
           value={formatCurrency(overview.totals.spend)}
           icon={Wallet}
           tone="amber"
@@ -59,6 +66,10 @@ export default async function DashboardPage() {
           value={String(overview.activeCampaignsCount)}
           icon={Megaphone}
         />
+      </div>
+
+      <div className="flex justify-end">
+        <RangeSwitcher basePath="/dashboard" current={rangeDays} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">

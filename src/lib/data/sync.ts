@@ -233,6 +233,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
               type: mapMediaTypeToPostType(item.mediaType, item.mediaProductType),
               caption: item.caption,
               mediaUrl: item.mediaUrl,
+              thumbnailUrl: item.thumbnailUrl,
               permalink: item.permalink,
               likes: item.likeCount ?? 0,
               comments: item.commentsCount ?? 0,
@@ -242,6 +243,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
             update: {
               caption: item.caption,
               mediaUrl: item.mediaUrl,
+              thumbnailUrl: item.thumbnailUrl,
               permalink: item.permalink,
               likes: item.likeCount ?? 0,
               comments: item.commentsCount ?? 0,

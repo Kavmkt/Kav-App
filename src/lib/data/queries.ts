@@ -1,7 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Períodos disponíveis no seletor de "Crescimento de seguidores" / "Investimento". */
+export const METRIC_RANGE_OPTIONS = [7, 30] as const;
+export type MetricRangeDays = (typeof METRIC_RANGE_OPTIONS)[number];
+export const DEFAULT_METRIC_RANGE_DAYS: MetricRangeDays = 30;
+
+export function parseMetricRangeDays(value: string | undefined): MetricRangeDays {
+  const parsed = Number(value);
+  return (METRIC_RANGE_OPTIONS as readonly number[]).includes(parsed)
+    ? (parsed as MetricRangeDays)
+    : DEFAULT_METRIC_RANGE_DAYS;
+}
 
 export async function getClientById(clientId: string) {
   return prisma.client.findUnique({ where: { id: clientId } });
@@ -80,8 +92,11 @@ async function getRealEngagementRate(
   return (avgInteractions / followers) * 100;
 }
 
-export async function getClientOverview(clientId: string) {
-  const since = new Date(Date.now() - THIRTY_DAYS_MS);
+export async function getClientOverview(
+  clientId: string,
+  rangeDays: MetricRangeDays = DEFAULT_METRIC_RANGE_DAYS
+) {
+  const since = new Date(Date.now() - rangeDays * ONE_DAY_MS);
 
   const [metricSeries, adSeries, recentPosts, campaigns] = await Promise.all([
     getMetricSeries(clientId, since),
@@ -114,6 +129,7 @@ export async function getClientOverview(clientId: string) {
   return {
     latest,
     followerGrowth,
+    rangeDays,
     engagementRate,
     metricSeries,
     adSeries,
@@ -134,8 +150,11 @@ export async function getClientPosts(clientId: string) {
   return getPosts(clientId);
 }
 
-export async function getClientCampaigns(clientId: string) {
-  const since = new Date(Date.now() - THIRTY_DAYS_MS);
+export async function getClientCampaigns(
+  clientId: string,
+  rangeDays: MetricRangeDays = DEFAULT_METRIC_RANGE_DAYS
+) {
+  const since = new Date(Date.now() - rangeDays * ONE_DAY_MS);
   const [campaigns, adSeries] = await Promise.all([
     prisma.adCampaign.findMany({
       where: { clientId },
@@ -143,7 +162,7 @@ export async function getClientCampaigns(clientId: string) {
     }),
     getAdSeries(clientId, since),
   ]);
-  return { campaigns, adSeries };
+  return { campaigns, adSeries, rangeDays };
 }
 
 export async function getCoursesForUser(userId: string) {
