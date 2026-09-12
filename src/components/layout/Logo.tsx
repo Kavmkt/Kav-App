@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Marca da agência (Kav Marketing e Performance). Não temos um arquivo de
- * logotipo oficial disponível neste projeto — este é um wordmark desenhado
- * em código (ícone com gradiente + tipografia), fácil de trocar depois por
- * um arquivo de marca real bastando substituir este componente.
+ * Marca da agência (Kav Marketing e Performance) — recriada em SVG a partir
+ * da foto de perfil oficial do Instagram @kav.mkt (public/logos/kav.svg),
+ * já que não temos o arquivo de design original da marca neste projeto.
+ * Trocar por um arquivo oficial no futuro é só substituir
+ * public/logos/kav.svg.
  *
  * Por instrução do time, essa marca só deve aparecer em dois lugares do
  * app: no menu (sidebar/topbar) e no rodapé — nunca espalhada pelas
@@ -18,14 +19,18 @@ export function Logo({
   className?: string;
 }) {
   const mark = (
-    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#7c6cff] to-[#4f8cff] text-sm font-bold text-white shadow-[0_4px_16px_-4px_rgba(79,140,255,0.65)]">
-      <span className="pointer-events-none absolute -left-2 -top-3 h-8 w-8 rounded-full bg-white/25 blur-md" />
-      <span className="relative">K</span>
+    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-[0_4px_16px_-4px_rgba(22,41,79,0.45)]">
+      {/* eslint-disable-next-line @next/next/no-img-element -- ícone estático embutido no bundle, next/image seria overkill */}
+      <img src="/logos/kav.svg" alt="Kav" className="h-full w-full object-cover" />
     </span>
   );
 
-  if (variant === "mark") {
-    return <span className={className}>{mark}</span>;
+  if (variant === "mark" || variant === "compact") {
+    return (
+      <span className={cn("inline-flex items-center", className)}>
+        {mark}
+      </span>
+    );
   }
 
   return (
@@ -35,11 +40,9 @@ export function Logo({
         <span className="block truncate text-[15px] font-bold tracking-tight">
           Kav
         </span>
-        {variant === "full" && (
-          <span className="mt-0.5 block truncate text-[10px] font-medium uppercase tracking-wider text-foreground/45">
-            Marketing &amp; Performance
-          </span>
-        )}
+        <span className="mt-0.5 block truncate text-[10px] font-medium uppercase tracking-wider text-foreground/45">
+          Marketing &amp; Performance
+        </span>
       </span>
     </span>
   );

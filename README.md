@@ -51,18 +51,22 @@ conteúdo dos cursos.
 - A marca da agência (**Kav Marketing e Performance**) aparece só em dois
   lugares, por design: no menu (`src/components/layout/Logo.tsx`, usado em
   `AppShell`) e no rodapé (`src/components/layout/Footer.tsx`), presente em
-  toda página autenticada e na tela de login. Não existe um arquivo de
-  logotipo oficial da agência neste projeto — o componente `Logo` é um
-  wordmark desenhado em código (ícone com gradiente + tipografia); basta
-  substituir esse componente por uma versão com o arquivo de marca real
-  quando ele existir.
+  toda página autenticada e na tela de login. A imagem usada é
+  `public/logos/kav.svg` — um SVG recriado a partir da foto de perfil
+  oficial do Instagram @kav.mkt (não é o arquivo de design original da
+  agência). Trocar por um arquivo de marca oficial no futuro é só
+  substituir esse SVG (mesmo nome/caminho) ou apontar `Logo.tsx` para um
+  novo arquivo.
 - **Logo por cliente**: o admin pode configurar a URL de uma imagem de
   logotipo para cada cliente (campo `Client.logoUrl`, editável na página do
   cliente em `/admin/clients/[id]`, seção "Identidade visual"). Quando
   configurado, esse logo substitui o avatar de iniciais no menu lateral do
-  painel do cliente e nas listagens do admin. Como não há upload de arquivo
-  no app, o link deve apontar para uma imagem já hospedada (ex.: PNG/SVG com
-  fundo transparente).
+  painel do cliente e nas listagens do admin. Pode ser uma URL externa ou um
+  caminho local em `public/` (ex.: `/logos/pontocar.svg`, já incluído neste
+  projeto como um SVG recriado a partir da foto de perfil oficial do
+  Instagram @car_ponto — configurar esse valor no cliente Pontocar em
+  produção via `/admin/clients/[id]` depois do deploy, já que o app de
+  produção roda num banco separado deste ambiente de desenvolvimento).
 
 ## Configuração
 
