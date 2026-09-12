@@ -60,13 +60,16 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
 
   if (configured && accessToken) {
     try {
-      // Só fazemos o backfill de histórico UMA vez (na primeira sincronização
-      // real de um cliente) — depois disso cada dia já grava seu próprio
-      // ponto real, não tem por que rebuscar 30 dias de novo a cada sync.
-      const hasRealHistory = await prisma.metricSnapshot.findFirst({
+      // Só vale a pena tentar o backfill de histórico enquanto o cliente
+      // ainda tem poucos dias reais gravados — uma vez estabelecido (>=5
+      // dias, um número arbitrário só pra "já tem histórico suficiente"),
+      // não tem por que rebuscar 30 dias de novo a cada sincronização.
+      // Usar "< 5" em vez de "nenhum" também cobre o caso de um cliente
+      // que já tinha 1 dia real gravado antes desse backfill existir.
+      const realMetricCount = await prisma.metricSnapshot.count({
         where: { clientId, isDemo: false },
-        select: { id: true },
       });
+      const shouldBackfillMetrics = realMetricCount < 5;
 
       if (client.instagramUserId) {
         const profile = await fetchInstagramProfile(
@@ -74,7 +77,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
           accessToken
         );
 
-        if (!hasRealHistory) {
+        if (shouldBackfillMetrics) {
           try {
             const history = await fetchInstagramFollowerCountHistory(
               client.instagramUserId,
@@ -180,7 +183,10 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
       }
 
       if (client.metaAdAccountId) {
-        if (!hasRealHistory) {
+        const realAdCount = await prisma.adSpendSnapshot.count({
+          where: { clientId, isDemo: false },
+        });
+        if (realAdCount < 5) {
           try {
             const history = await fetchAdAccountInsightsHistory(
               client.metaAdAccountId,
@@ -243,9 +249,9 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
 
       return {
         usedRealData: true,
-        message: hasRealHistory
-          ? "Dados atualizados a partir da Meta Graph API."
-          : "Dados atualizados — histórico dos últimos 30 dias importado da Meta Graph API.",
+        message: shouldBackfillMetrics
+          ? "Dados atualizados — histórico dos últimos 30 dias importado da Meta Graph API."
+          : "Dados atualizados a partir da Meta Graph API.",
       };
     } catch (err) {
       console.error("[meta-sync] falha ao buscar dados reais:", err);
