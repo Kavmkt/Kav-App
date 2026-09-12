@@ -40,11 +40,22 @@ export function RefreshButton({ clientId }: { clientId: string }) {
   function handleClick() {
     setResult(null);
     startTransition(async () => {
-      const res = await syncClientAction(clientId);
-      setResult({
-        message: res.message,
-        tone: resolveTone(res.message, res.usedRealData),
-      });
+      try {
+        const res = await syncClientAction(clientId);
+        setResult({
+          message: res.message,
+          tone: resolveTone(res.message, res.usedRealData),
+        });
+      } catch (err) {
+        // Se a requisição em si falhar (erro de rede, 5xx do servidor,
+        // timeout da function no Vercel) — sem isso, a tela ficava presa
+        // na última mensagem de sucesso, dando a impressão de que nada
+        // tinha mudado quando na verdade a sincronização nem rodou.
+        setResult({
+          message: `Não foi possível falar com o servidor para sincronizar (${err instanceof Error ? err.message : "erro de rede"}). Tente de novo em alguns segundos.`,
+          tone: "issue",
+        });
+      }
     });
   }
 

@@ -12,6 +12,14 @@ const navItems = [
   { href: "/dashboard/courses", label: "Cursos", icon: GraduationCap },
 ];
 
+// Rede de segurança: o botão "Atualizar agora" (RefreshButton, no header
+// deste layout) pode fazer várias chamadas à Meta + ao banco na primeira
+// sincronização de um cliente (backfill de 30 dias). Mesmo já otimizado
+// pra rodar tudo em paralelo, um dia ruim de latência da Meta pode passar
+// do limite padrão de execução de uma function do Vercel — isso estende
+// esse limite pras rotas sob /dashboard (onde a Server Action roda).
+export const maxDuration = 60;
+
 export default async function DashboardLayout({
   children,
 }: {

@@ -10,6 +10,9 @@ import {
   mapMediaTypeToPostType,
   reconstructFollowerHistory,
   resolveAccessToken,
+  type AdInsightsDayPoint,
+  type FollowerCountHistoryPoint,
+  type InstagramMediaItem,
 } from "@/lib/integrations/meta";
 
 function startOfToday() {
@@ -30,6 +33,10 @@ function jitter(base: number, pct: number) {
   return Math.max(0, Math.round(base + delta));
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 export type SyncResult = {
   usedRealData: boolean;
   message: string;
@@ -43,6 +50,15 @@ export type SyncResult = {
  * - Caso contrário, gera um novo snapshot "ao vivo" com uma variação
  *   realista sobre o último snapshot conhecido, para que o modo de
  *   demonstração continue parecendo dados em tempo real.
+ *
+ * Importante: todas as chamadas de rede/banco independentes rodam em
+ * PARALELO (Promise.all), nunca uma de cada vez num loop sequencial. Numa
+ * primeira sincronização com backfill de 30 dias, um loop sequencial
+ * chegava a ~85 operações uma atrás da outra (cada uma com latência de
+ * rede até o Meta/banco) — tempo de sobra pra estourar o limite de
+ * execução de uma function serverless do Vercel (o que gerava 503 no
+ * meio da requisição). Rodando em paralelo, o mesmo trabalho leva uma
+ * fração do tempo.
  */
 export async function syncClient(clientId: string): Promise<SyncResult> {
   const client = await prisma.client.findUniqueOrThrow({
@@ -59,78 +75,97 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
   });
 
   if (configured && accessToken) {
-    // Notas de diagnóstico do backfill, incluídas na mensagem final em vez
-    // de só irem pro console do servidor — assim quem clica em "Atualizar
-    // agora" (cliente OU admin) vê na hora se o histórico veio, veio vazio,
-    // ou falhou (e por quê), sem precisar de acesso a logs do Vercel.
+    // Notas de diagnóstico, incluídas na mensagem final em vez de só irem
+    // pro console do servidor — assim quem clica em "Atualizar agora"
+    // (cliente OU admin) vê na hora o que aconteceu, sem precisar de
+    // acesso a logs do Vercel.
     const notes: string[] = [];
 
     try {
+      const [realMetricCount, realAdCount] = await Promise.all([
+        prisma.metricSnapshot.count({ where: { clientId, isDemo: false } }),
+        client.metaAdAccountId
+          ? prisma.adSpendSnapshot.count({ where: { clientId, isDemo: false } })
+          : Promise.resolve(0),
+      ]);
       // Só vale a pena tentar o backfill de histórico enquanto o cliente
       // ainda tem poucos dias reais gravados — uma vez estabelecido (>=5
       // dias, um número arbitrário só pra "já tem histórico suficiente"),
       // não tem por que rebuscar 30 dias de novo a cada sincronização.
-      // Usar "< 5" em vez de "nenhum" também cobre o caso de um cliente
-      // que já tinha 1 dia real gravado antes desse backfill existir.
-      const realMetricCount = await prisma.metricSnapshot.count({
-        where: { clientId, isDemo: false },
-      });
       const shouldBackfillMetrics = realMetricCount < 5;
+      const shouldBackfillAds = client.metaAdAccountId ? realAdCount < 5 : false;
 
-      if (client.instagramUserId) {
-        const profile = await fetchInstagramProfile(
-          client.instagramUserId,
-          accessToken
-        );
+      // --- 1) Dispara TODAS as chamadas de rede à Meta em paralelo ---
+      const [profile, media, followerHistory, adHistory, adToday] =
+        await Promise.all([
+          client.instagramUserId
+            ? fetchInstagramProfile(client.instagramUserId, accessToken)
+            : Promise.resolve(null),
+          client.instagramUserId
+            ? fetchInstagramMedia(client.instagramUserId, accessToken)
+            : Promise.resolve<InstagramMediaItem[]>([]),
+          client.instagramUserId && shouldBackfillMetrics
+            ? fetchInstagramFollowerCountHistory(
+                client.instagramUserId,
+                accessToken,
+                30
+              ).catch((err): FollowerCountHistoryPoint[] | Error => {
+                console.error("[meta-sync] backfill de seguidores falhou:", err);
+                return err instanceof Error ? err : new Error(String(err));
+              })
+            : Promise.resolve<FollowerCountHistoryPoint[]>([]),
+          client.metaAdAccountId && shouldBackfillAds
+            ? fetchAdAccountInsightsHistory(
+                client.metaAdAccountId,
+                accessToken,
+                30
+              ).catch((err): AdInsightsDayPoint[] | Error => {
+                console.error("[meta-sync] backfill de investimento falhou:", err);
+                return err instanceof Error ? err : new Error(String(err));
+              })
+            : Promise.resolve<AdInsightsDayPoint[]>([]),
+          client.metaAdAccountId
+            ? fetchAdAccountInsights(client.metaAdAccountId, accessToken, "today")
+            : Promise.resolve(null),
+        ]);
 
+      // --- 2) Grava tudo em paralelo (não um upsert de cada vez) ---
+      const writes: Promise<unknown>[] = [];
+
+      if (profile && client.instagramUserId) {
         if (shouldBackfillMetrics) {
-          try {
-            const history = await fetchInstagramFollowerCountHistory(
-              client.instagramUserId,
-              accessToken,
-              30
-            );
+          if (followerHistory instanceof Error) {
+            notes.push(`histórico de seguidores falhou: ${followerHistory.message}`);
+          } else {
             const reconstructed = reconstructFollowerHistory(
-              history,
+              followerHistory,
               profile.followersCount
             );
-            for (const point of reconstructed) {
-              const day = parseDayString(point.date);
-              await prisma.metricSnapshot.upsert({
-                where: { clientId_date: { clientId, date: day } },
-                create: {
-                  clientId,
-                  date: day,
-                  followers: point.followers,
-                  following: profile.followsCount,
-                  postsCount: profile.mediaCount,
-                  avgEngagementRate: 0,
-                  profileViews: 0,
-                  reach: 0,
-                  isDemo: false,
-                },
-                update: {
-                  followers: point.followers,
-                  isDemo: false,
-                },
-              });
-            }
+            writes.push(
+              ...reconstructed.map((point) => {
+                const day = parseDayString(point.date);
+                return prisma.metricSnapshot.upsert({
+                  where: { clientId_date: { clientId, date: day } },
+                  create: {
+                    clientId,
+                    date: day,
+                    followers: point.followers,
+                    following: profile.followsCount,
+                    postsCount: profile.mediaCount,
+                    avgEngagementRate: 0,
+                    profileViews: 0,
+                    reach: 0,
+                    isDemo: false,
+                  },
+                  update: { followers: point.followers, isDemo: false },
+                });
+              })
+            );
             notes.push(
               reconstructed.length > 0
                 ? `histórico de seguidores: ${reconstructed.length} dia(s) importado(s)`
                 : "histórico de seguidores: a Meta não retornou nenhum dia (conta pode ser nova ou sem esse período disponível)"
             );
-          } catch (backfillErr) {
-            // Backfill é um "bônus" — se falhar (conta sem histórico
-            // suficiente, permissão faltando, etc.) seguimos normalmente e
-            // gravamos pelo menos o dia de hoje logo abaixo. Mas o motivo
-            // do erro vai na mensagem final, não só no console do servidor.
-            const msg =
-              backfillErr instanceof Error
-                ? backfillErr.message
-                : String(backfillErr);
-            console.error("[meta-sync] backfill de seguidores falhou:", backfillErr);
-            notes.push(`histórico de seguidores falhou: ${msg}`);
           }
         }
 
@@ -138,39 +173,40 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
           where: { clientId },
           orderBy: { date: "desc" },
         });
-        await prisma.metricSnapshot.upsert({
-          where: { clientId_date: { clientId, date: today } },
-          create: {
-            clientId,
-            date: today,
-            followers: profile.followersCount,
-            following: profile.followsCount,
-            postsCount: profile.mediaCount,
-            // A API básica de perfil não retorna engajamento/alcance/visitas
-            // (isso exige o endpoint de Insights com permissões extras);
-            // por ora mantemos o último valor conhecido só para essas 3
-            // métricas, mas seguidores/seguindo/posts já são 100% reais.
-            // "Engajamento médio" exibido no dashboard, no entanto, é
-            // recalculado de verdade a partir dos posts reais — veja
-            // getClientOverview em src/lib/data/queries.ts.
-            avgEngagementRate: last?.avgEngagementRate ?? 3.5,
-            profileViews: last?.profileViews ?? 0,
-            reach: last?.reach ?? 0,
-            isDemo: false,
-          },
-          update: {
-            followers: profile.followersCount,
-            following: profile.followsCount,
-            postsCount: profile.mediaCount,
-            isDemo: false,
-          },
-        });
+        writes.push(
+          prisma.metricSnapshot.upsert({
+            where: { clientId_date: { clientId, date: today } },
+            create: {
+              clientId,
+              date: today,
+              followers: profile.followersCount,
+              following: profile.followsCount,
+              postsCount: profile.mediaCount,
+              // A API básica de perfil não retorna engajamento/alcance/
+              // visitas (isso exige o endpoint de Insights com permissões
+              // extras); por ora mantemos o último valor conhecido só
+              // para essas 3 métricas, mas seguidores/seguindo/posts já
+              // são 100% reais. "Engajamento médio" exibido no dashboard
+              // é recalculado de verdade a partir dos posts reais — veja
+              // getClientOverview em src/lib/data/queries.ts.
+              avgEngagementRate: last?.avgEngagementRate ?? 3.5,
+              profileViews: last?.profileViews ?? 0,
+              reach: last?.reach ?? 0,
+              isDemo: false,
+            },
+            update: {
+              followers: profile.followersCount,
+              following: profile.followsCount,
+              postsCount: profile.mediaCount,
+              isDemo: false,
+            },
+          })
+        );
       }
 
-      if (client.instagramUserId) {
-        const media = await fetchInstagramMedia(client.instagramUserId, accessToken);
-        for (const item of media) {
-          await prisma.post.upsert({
+      for (const item of media) {
+        writes.push(
+          prisma.post.upsert({
             where: { externalId: item.id },
             create: {
               clientId,
@@ -192,81 +228,71 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
               comments: item.commentsCount ?? 0,
               isDemo: false,
             },
-          });
-        }
+          })
+        );
       }
 
       if (client.metaAdAccountId) {
-        const realAdCount = await prisma.adSpendSnapshot.count({
-          where: { clientId, isDemo: false },
-        });
-        if (realAdCount < 5) {
-          try {
-            const history = await fetchAdAccountInsightsHistory(
-              client.metaAdAccountId,
-              accessToken,
-              30
+        if (shouldBackfillAds) {
+          if (adHistory instanceof Error) {
+            notes.push(`histórico de investimento falhou: ${adHistory.message}`);
+          } else {
+            writes.push(
+              ...adHistory.map((day) => {
+                const date = parseDayString(day.date);
+                return prisma.adSpendSnapshot.upsert({
+                  where: { clientId_date: { clientId, date } },
+                  create: {
+                    clientId,
+                    date,
+                    spend: day.spend,
+                    impressions: day.impressions,
+                    clicks: day.clicks,
+                    conversions: 0,
+                    isDemo: false,
+                  },
+                  update: {
+                    spend: day.spend,
+                    impressions: day.impressions,
+                    clicks: day.clicks,
+                    isDemo: false,
+                  },
+                });
+              })
             );
-            for (const day of history) {
-              const date = parseDayString(day.date);
-              await prisma.adSpendSnapshot.upsert({
-                where: { clientId_date: { clientId, date } },
-                create: {
-                  clientId,
-                  date,
-                  spend: day.spend,
-                  impressions: day.impressions,
-                  clicks: day.clicks,
-                  conversions: 0,
-                  isDemo: false,
-                },
-                update: {
-                  spend: day.spend,
-                  impressions: day.impressions,
-                  clicks: day.clicks,
-                  isDemo: false,
-                },
-              });
-            }
             notes.push(
-              history.length > 0
-                ? `histórico de investimento: ${history.length} dia(s) importado(s)`
+              adHistory.length > 0
+                ? `histórico de investimento: ${adHistory.length} dia(s) importado(s)`
                 : "histórico de investimento: a Meta não retornou nenhum dia"
             );
-          } catch (backfillErr) {
-            const msg =
-              backfillErr instanceof Error
-                ? backfillErr.message
-                : String(backfillErr);
-            console.error("[meta-sync] backfill de investimento falhou:", backfillErr);
-            notes.push(`histórico de investimento falhou: ${msg}`);
           }
         }
 
-        const insights = await fetchAdAccountInsights(
-          client.metaAdAccountId,
-          accessToken,
-          "today"
-        );
-        await prisma.adSpendSnapshot.upsert({
-          where: { clientId_date: { clientId, date: today } },
-          create: {
-            clientId,
-            date: today,
-            spend: insights.spend,
-            impressions: insights.impressions,
-            clicks: insights.clicks,
-            conversions: 0,
-            isDemo: false,
-          },
-          update: {
-            spend: insights.spend,
-            impressions: insights.impressions,
-            clicks: insights.clicks,
-            isDemo: false,
-          },
-        });
+        if (adToday) {
+          writes.push(
+            prisma.adSpendSnapshot.upsert({
+              where: { clientId_date: { clientId, date: today } },
+              create: {
+                clientId,
+                date: today,
+                spend: adToday.spend,
+                impressions: adToday.impressions,
+                clicks: adToday.clicks,
+                conversions: 0,
+                isDemo: false,
+              },
+              update: {
+                spend: adToday.spend,
+                impressions: adToday.impressions,
+                clicks: adToday.clicks,
+                isDemo: false,
+              },
+            })
+          );
+        }
       }
+
+      await Promise.all(writes);
 
       const base = "Dados atualizados a partir da Meta Graph API.";
       return {
@@ -274,11 +300,10 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
         message: notes.length > 0 ? `${base} ${notes.join("; ")}.` : base,
       };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
       console.error("[meta-sync] falha ao buscar dados reais:", err);
       return {
         usedRealData: false,
-        message: `Não foi possível buscar dados reais da Meta agora: ${msg}. Mantendo o último dado disponível.`,
+        message: `Não foi possível buscar dados reais da Meta agora: ${errorMessage(err)}. Mantendo o último dado disponível.`,
       };
     }
   }
@@ -291,63 +316,73 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
   // dia, mantendo o total sempre estável + um incremento pequeno. Também
   // sorteamos esse crescimento uma vez por dia (a partir de ontem), não a
   // cada 45s que o AutoSync chama isso — senão ia compor a cada poll.
-  const yesterdayOrEarlier = await prisma.metricSnapshot.findFirst({
-    where: { clientId, date: { lt: today } },
-    orderBy: { date: "desc" },
-  });
-  const todayExisting = await prisma.metricSnapshot.findUnique({
-    where: { clientId_date: { clientId, date: today } },
-  });
+  const [yesterdayOrEarlier, todayExisting, lastAd] = await Promise.all([
+    prisma.metricSnapshot.findFirst({
+      where: { clientId, date: { lt: today } },
+      orderBy: { date: "desc" },
+    }),
+    prisma.metricSnapshot.findUnique({
+      where: { clientId_date: { clientId, date: today } },
+    }),
+    prisma.adSpendSnapshot.findFirst({
+      where: { clientId },
+      orderBy: { date: "desc" },
+    }),
+  ]);
+
+  const demoWrites: Promise<unknown>[] = [];
   const metricBase = yesterdayOrEarlier ?? todayExisting;
   if (metricBase) {
     const followersToday =
       todayExisting?.followers ??
       (yesterdayOrEarlier?.followers ?? 0) + jitter(6, 0.5);
 
-    await prisma.metricSnapshot.upsert({
-      where: { clientId_date: { clientId, date: today } },
-      create: {
-        clientId,
-        date: today,
-        followers: followersToday,
-        following: metricBase.following,
-        postsCount: metricBase.postsCount,
-        avgEngagementRate: Number(
-          jitter(metricBase.avgEngagementRate * 10, 0.08) / 10
-        ),
-        profileViews: jitter(metricBase.profileViews, 0.2),
-        reach: jitter(metricBase.reach, 0.2),
-      },
-      update: {
-        followers: followersToday,
-        profileViews: jitter(metricBase.profileViews, 0.2),
-        reach: jitter(metricBase.reach, 0.2),
-      },
-    });
+    demoWrites.push(
+      prisma.metricSnapshot.upsert({
+        where: { clientId_date: { clientId, date: today } },
+        create: {
+          clientId,
+          date: today,
+          followers: followersToday,
+          following: metricBase.following,
+          postsCount: metricBase.postsCount,
+          avgEngagementRate: Number(
+            jitter(metricBase.avgEngagementRate * 10, 0.08) / 10
+          ),
+          profileViews: jitter(metricBase.profileViews, 0.2),
+          reach: jitter(metricBase.reach, 0.2),
+        },
+        update: {
+          followers: followersToday,
+          profileViews: jitter(metricBase.profileViews, 0.2),
+          reach: jitter(metricBase.reach, 0.2),
+        },
+      })
+    );
   }
 
-  const lastAd = await prisma.adSpendSnapshot.findFirst({
-    where: { clientId },
-    orderBy: { date: "desc" },
-  });
   if (lastAd) {
-    await prisma.adSpendSnapshot.upsert({
-      where: { clientId_date: { clientId, date: today } },
-      create: {
-        clientId,
-        date: today,
-        spend: jitter(lastAd.spend, 0.1),
-        impressions: jitter(lastAd.impressions, 0.15),
-        clicks: jitter(lastAd.clicks, 0.15),
-        conversions: jitter(lastAd.conversions, 0.2),
-      },
-      update: {
-        spend: jitter(lastAd.spend, 0.1),
-        impressions: jitter(lastAd.impressions, 0.15),
-        clicks: jitter(lastAd.clicks, 0.15),
-      },
-    });
+    demoWrites.push(
+      prisma.adSpendSnapshot.upsert({
+        where: { clientId_date: { clientId, date: today } },
+        create: {
+          clientId,
+          date: today,
+          spend: jitter(lastAd.spend, 0.1),
+          impressions: jitter(lastAd.impressions, 0.15),
+          clicks: jitter(lastAd.clicks, 0.15),
+          conversions: jitter(lastAd.conversions, 0.2),
+        },
+        update: {
+          spend: jitter(lastAd.spend, 0.1),
+          impressions: jitter(lastAd.impressions, 0.15),
+          clicks: jitter(lastAd.clicks, 0.15),
+        },
+      })
+    );
   }
+
+  await Promise.all(demoWrites);
 
   return {
     usedRealData: false,
