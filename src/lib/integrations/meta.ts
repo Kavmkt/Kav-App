@@ -29,6 +29,28 @@ export function isMetaConfigured(creds: MetaClientCredentials): boolean {
   return Boolean(creds.accessToken && (creds.instagramUserId || creds.metaAdAccountId));
 }
 
+/**
+ * Extrai uma mensagem de erro legível do corpo de resposta da Meta (que
+ * normalmente é um JSON tipo `{"error":{"message":"...","code":190}}`).
+ * Isso é o que acaba aparecendo pro usuário na mensagem de "Atualizar
+ * agora" quando algo falha — sem isso, um erro real (token expirado,
+ * permissão faltando, etc.) fica só num log de servidor que ninguém vê.
+ */
+function extractMetaErrorMessage(status: number, bodyText: string): string {
+  try {
+    const parsed = JSON.parse(bodyText) as {
+      error?: { message?: string; type?: string; code?: number };
+    };
+    if (parsed.error?.message) {
+      const code = parsed.error.code ? ` (código ${parsed.error.code})` : "";
+      return `${parsed.error.message}${code}`;
+    }
+  } catch {
+    // corpo não é JSON — usa o texto cru mesmo, truncado pra não poluir.
+  }
+  return `HTTP ${status}: ${bodyText.slice(0, 200)}`;
+}
+
 /** Resolve o token a usar: token específico do cliente > token de sistema global. */
 export function resolveAccessToken(clientToken: string | null): string | null {
   return clientToken || process.env.META_SYSTEM_ACCESS_TOKEN || null;
@@ -51,7 +73,9 @@ export async function fetchInstagramProfile(
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Meta Graph API (perfil) falhou: ${res.status} ${body}`);
+    throw new Error(
+      `Meta Graph API (perfil): ${extractMetaErrorMessage(res.status, body)}`
+    );
   }
   const json = (await res.json()) as {
     followers_count: number;
@@ -93,7 +117,9 @@ export async function fetchInstagramMedia(
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Meta Graph API (mídia) falhou: ${res.status} ${body}`);
+    throw new Error(
+      `Meta Graph API (mídia): ${extractMetaErrorMessage(res.status, body)}`
+    );
   }
   const json = (await res.json()) as {
     data: Array<{
@@ -177,7 +203,7 @@ export async function fetchInstagramFollowerCountHistory(
   if (!res.ok) {
     const body = await res.text();
     throw new Error(
-      `Meta Graph API (histórico de seguidores) falhou: ${res.status} ${body}`
+      `Meta Graph API (histórico de seguidores): ${extractMetaErrorMessage(res.status, body)}`
     );
   }
   const json = (await res.json()) as {
@@ -255,7 +281,7 @@ export async function fetchAdAccountInsightsHistory(
   if (!res.ok) {
     const body = await res.text();
     throw new Error(
-      `Meta Marketing API (histórico de investimento) falhou: ${res.status} ${body}`
+      `Meta Marketing API (histórico de investimento): ${extractMetaErrorMessage(res.status, body)}`
     );
   }
   const json = (await res.json()) as {
@@ -298,7 +324,9 @@ export async function fetchAdAccountInsights(
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Meta Marketing API (insights) falhou: ${res.status} ${body}`);
+    throw new Error(
+      `Meta Marketing API (insights): ${extractMetaErrorMessage(res.status, body)}`
+    );
   }
   const json = (await res.json()) as {
     data: Array<{

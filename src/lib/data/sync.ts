@@ -59,6 +59,12 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
   });
 
   if (configured && accessToken) {
+    // Notas de diagnóstico do backfill, incluídas na mensagem final em vez
+    // de só irem pro console do servidor — assim quem clica em "Atualizar
+    // agora" (cliente OU admin) vê na hora se o histórico veio, veio vazio,
+    // ou falhou (e por quê), sem precisar de acesso a logs do Vercel.
+    const notes: string[] = [];
+
     try {
       // Só vale a pena tentar o backfill de histórico enquanto o cliente
       // ainda tem poucos dias reais gravados — uma vez estabelecido (>=5
@@ -109,14 +115,22 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
                 },
               });
             }
+            notes.push(
+              reconstructed.length > 0
+                ? `histórico de seguidores: ${reconstructed.length} dia(s) importado(s)`
+                : "histórico de seguidores: a Meta não retornou nenhum dia (conta pode ser nova ou sem esse período disponível)"
+            );
           } catch (backfillErr) {
             // Backfill é um "bônus" — se falhar (conta sem histórico
             // suficiente, permissão faltando, etc.) seguimos normalmente e
-            // gravamos pelo menos o dia de hoje logo abaixo.
-            console.error(
-              "[meta-sync] backfill de seguidores falhou, seguindo sem histórico:",
-              backfillErr
-            );
+            // gravamos pelo menos o dia de hoje logo abaixo. Mas o motivo
+            // do erro vai na mensagem final, não só no console do servidor.
+            const msg =
+              backfillErr instanceof Error
+                ? backfillErr.message
+                : String(backfillErr);
+            console.error("[meta-sync] backfill de seguidores falhou:", backfillErr);
+            notes.push(`histórico de seguidores falhou: ${msg}`);
           }
         }
 
@@ -214,11 +228,18 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
                 },
               });
             }
-          } catch (backfillErr) {
-            console.error(
-              "[meta-sync] backfill de investimento falhou, seguindo sem histórico:",
-              backfillErr
+            notes.push(
+              history.length > 0
+                ? `histórico de investimento: ${history.length} dia(s) importado(s)`
+                : "histórico de investimento: a Meta não retornou nenhum dia"
             );
+          } catch (backfillErr) {
+            const msg =
+              backfillErr instanceof Error
+                ? backfillErr.message
+                : String(backfillErr);
+            console.error("[meta-sync] backfill de investimento falhou:", backfillErr);
+            notes.push(`histórico de investimento falhou: ${msg}`);
           }
         }
 
@@ -247,46 +268,60 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
         });
       }
 
+      const base = "Dados atualizados a partir da Meta Graph API.";
       return {
         usedRealData: true,
-        message: shouldBackfillMetrics
-          ? "Dados atualizados — histórico dos últimos 30 dias importado da Meta Graph API."
-          : "Dados atualizados a partir da Meta Graph API.",
+        message: notes.length > 0 ? `${base} ${notes.join("; ")}.` : base,
       };
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error("[meta-sync] falha ao buscar dados reais:", err);
       return {
         usedRealData: false,
-        message:
-          "Não foi possível buscar dados reais da Meta agora (verifique o token). Mantendo o último dado disponível.",
+        message: `Não foi possível buscar dados reais da Meta agora: ${msg}. Mantendo o último dado disponível.`,
       };
     }
   }
 
   // --- Modo demonstração: simula uma pequena variação "ao vivo" ---
-  const lastMetric = await prisma.metricSnapshot.findFirst({
-    where: { clientId },
+  // Seguidores são um total ACUMULADO — o ruído do jitter() não pode ser
+  // aplicado a esse total (15% de ~4.450 seguidores é um salto de mais de
+  // 600 num dia só, o que já chegou a gerar quedas absurdas tipo "-348 nos
+  // últimos 30 dias"). O ruído tem que valer só sobre o CRESCIMENTO do
+  // dia, mantendo o total sempre estável + um incremento pequeno. Também
+  // sorteamos esse crescimento uma vez por dia (a partir de ontem), não a
+  // cada 45s que o AutoSync chama isso — senão ia compor a cada poll.
+  const yesterdayOrEarlier = await prisma.metricSnapshot.findFirst({
+    where: { clientId, date: { lt: today } },
     orderBy: { date: "desc" },
   });
-  if (lastMetric) {
+  const todayExisting = await prisma.metricSnapshot.findUnique({
+    where: { clientId_date: { clientId, date: today } },
+  });
+  const metricBase = yesterdayOrEarlier ?? todayExisting;
+  if (metricBase) {
+    const followersToday =
+      todayExisting?.followers ??
+      (yesterdayOrEarlier?.followers ?? 0) + jitter(6, 0.5);
+
     await prisma.metricSnapshot.upsert({
       where: { clientId_date: { clientId, date: today } },
       create: {
         clientId,
         date: today,
-        followers: jitter(lastMetric.followers + 6, 0.15),
-        following: lastMetric.following,
-        postsCount: lastMetric.postsCount,
+        followers: followersToday,
+        following: metricBase.following,
+        postsCount: metricBase.postsCount,
         avgEngagementRate: Number(
-          jitter(lastMetric.avgEngagementRate * 10, 0.08) / 10
+          jitter(metricBase.avgEngagementRate * 10, 0.08) / 10
         ),
-        profileViews: jitter(lastMetric.profileViews, 0.2),
-        reach: jitter(lastMetric.reach, 0.2),
+        profileViews: jitter(metricBase.profileViews, 0.2),
+        reach: jitter(metricBase.reach, 0.2),
       },
       update: {
-        followers: jitter(lastMetric.followers + 6, 0.15),
-        profileViews: jitter(lastMetric.profileViews, 0.2),
-        reach: jitter(lastMetric.reach, 0.2),
+        followers: followersToday,
+        profileViews: jitter(metricBase.profileViews, 0.2),
+        reach: jitter(metricBase.reach, 0.2),
       },
     });
   }

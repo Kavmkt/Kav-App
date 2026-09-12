@@ -1,29 +1,57 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { syncClientAction } from "@/lib/data/actions";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+
+type Tone = "success" | "info" | "issue";
+
+const toneClasses: Record<Tone, string> = {
+  success: "bg-emerald-50 text-emerald-800",
+  info: "bg-black/[0.04] text-foreground/60",
+  issue: "bg-amber-50 text-amber-800",
+};
+
+const toneIcon: Record<Tone, typeof AlertTriangle> = {
+  success: CheckCircle2,
+  info: Info,
+  issue: AlertTriangle,
+};
+
+function resolveTone(message: string, usedRealData: boolean): Tone {
+  // "falhou" / "Não foi possível" aparecem quando o backfill ou a
+  // sincronização real deram erro de verdade — isso sim é um problema.
+  // Sem credencial Meta configurada é um estado normal e esperado (modo
+  // demonstração), não um erro, então não deve parecer um alerta.
+  if (message.includes("falhou") || message.includes("Não foi possível")) {
+    return "issue";
+  }
+  return usedRealData ? "success" : "info";
+}
 
 export function RefreshButton({ clientId }: { clientId: string }) {
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<{ message: string; tone: Tone } | null>(
+    null
+  );
 
   function handleClick() {
-    setMessage(null);
+    setResult(null);
     startTransition(async () => {
-      const result = await syncClientAction(clientId);
-      setMessage(result.message);
+      const res = await syncClientAction(clientId);
+      setResult({
+        message: res.message,
+        tone: resolveTone(res.message, res.usedRealData),
+      });
     });
   }
 
+  const Icon = result ? toneIcon[result.tone] : null;
+
   return (
-    <div className="flex items-center gap-3">
-      {message && (
-        <span className="hidden text-xs text-foreground/50 sm:inline">
-          {message}
-        </span>
-      )}
+    <div className="flex flex-col items-end gap-1.5">
       <Button
         variant="secondary"
         size="sm"
@@ -33,6 +61,17 @@ export function RefreshButton({ clientId }: { clientId: string }) {
         <RefreshCw size={14} className={isPending ? "animate-spin" : ""} />
         {isPending ? "Atualizando..." : "Atualizar agora"}
       </Button>
+      {result && Icon && (
+        <div
+          className={cn(
+            "flex max-w-xs items-start gap-1.5 rounded-lg px-2.5 py-1.5 text-xs sm:max-w-sm",
+            toneClasses[result.tone]
+          )}
+        >
+          <Icon size={13} className="mt-0.5 shrink-0" />
+          <span>{result.message}</span>
+        </div>
+      )}
     </div>
   );
 }
