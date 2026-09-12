@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum CampaignObjective {
+  AWARENESS
+  TRAFFIC
+  ENGAGEMENT
+  LEADS
+  SALES
+}
+
+enum PostType {
+  IMAGE
+  VIDEO
+  CAROUSEL
+  REEL
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  passwordHash       String
+  name               String
+  role               Role     @default(CLIENT)
+  active             Boolean  @default(true)
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  lessonProgress LessonProgress[]
+
+  @@index([clientId])
+}
+
+model Client {
+  id               String   @id @default(cuid())
+  companyName      String
+  slug             String   @unique
+  contactEmail     String?
+  instagramHandle  String?
+  instagramUserId  String?
+  metaAdAccountId  String?
+  metaAccessToken  String?
+  logoColor        String   @default("#6366f1")
+  plan             String   @default("Essencial")
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  users           User[]
+  metricSnapshots MetricSnapshot[]
+  posts           Post[]
+  campaigns       AdCampaign[]
+  adSnapshots     AdSpendSnapshot[]
+}
+
+model MetricSnapshot {
+  id                String   @id @default(cuid())
+  clientId          String
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date              DateTime
+  followers         Int
+  following         Int
+  postsCount        Int
+  avgEngagementRate Float
+  profileViews      Int
+  reach             Int
+  createdAt         DateTime @default(now())
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform    String    @default("INSTAGRAM")
+  type        PostType  @default(IMAGE)
+  caption     String?
+  mediaUrl    String?
+  permalink   String?
+  likes       Int       @default(0)
+  comments    Int       @default(0)
+  shares      Int       @default(0)
+  saves       Int       @default(0)
+  reach       Int       @default(0)
+  impressions Int       @default(0)
+  postedAt    DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([clientId, postedAt])
+}
+
+model AdCampaign {
+  id          String            @id @default(cuid())
+  clientId    String
+  client      Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name        String
+  objective   CampaignObjective @default(TRAFFIC)
+  status      CampaignStatus    @default(ACTIVE)
+  dailyBudget Float
+  spend       Float             @default(0)
+  impressions Int               @default(0)
+  clicks      Int               @default(0)
+  results     Int               @default(0)
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([clientId])
+}
+
+model AdSpendSnapshot {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date        DateTime
+  spend       Float
+  impressions Int
+  clicks      Int
+  conversions Int
+  createdAt   DateTime @default(now())
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  coverColor  String   @default("#6366f1")
+  published   Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  modules Module[]
+}
+
+model Module {
+  id       String @id @default(cuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int    @default(0)
+
+  lessons Lesson[]
+}
+
+model Lesson {
+  id              String   @id @default(cuid())
+  moduleId        String
+  module          Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title           String
+  content         String
+  videoUrl        String?
+  durationMinutes Int      @default(10)
+  order           Int      @default(0)
+
+  progress LessonProgress[]
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+}
