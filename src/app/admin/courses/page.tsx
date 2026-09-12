@@ -39,7 +39,7 @@ export default async function AdminCoursesPage() {
           return (
             <Card key={course.id}>
               <div
-                className="flex h-24 items-center justify-center rounded-t-2xl"
+                className="flex h-24 items-center justify-center rounded-t-3xl"
                 style={{
                   background: `linear-gradient(135deg, ${course.coverColor}, #12131a22)`,
                 }}
@@ -63,7 +63,7 @@ export default async function AdminCoursesPage() {
                 <div className="flex items-center gap-2 pt-1">
                   <Link
                     href={`/admin/courses/${course.id}`}
-                    className="rounded-lg border border-border-subtle px-3 py-1.5 text-xs font-medium hover:bg-black/[0.03]"
+                    className="rounded-lg border border-border-subtle px-3 py-1.5 text-xs font-medium hover:bg-white/[0.06]"
                   >
                     Gerenciar conteúdo
                   </Link>

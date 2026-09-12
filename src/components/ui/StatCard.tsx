@@ -19,21 +19,21 @@ export function StatCard({
 }) {
   const positive = (delta ?? 0) >= 0;
   const toneBg = {
-    brand: "bg-brand-soft text-brand-dark",
-    green: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
+    brand: "bg-brand-soft text-brand",
+    green: "bg-emerald-400/15 text-emerald-300",
+    amber: "bg-amber-400/15 text-amber-300",
   }[tone];
 
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-foreground/60">{label}</p>
+          <p className="text-sm text-foreground/55">{label}</p>
           <p className="mt-1.5 text-2xl font-semibold tracking-tight">
             {value}
           </p>
         </div>
-        <div className={cn("rounded-xl p-2.5", toneBg)}>
+        <div className={cn("rounded-2xl p-2.5", toneBg)}>
           <Icon size={18} />
         </div>
       </div>
@@ -41,7 +41,7 @@ export function StatCard({
         <p
           className={cn(
             "mt-3 text-xs font-medium",
-            positive ? "text-emerald-600" : "text-red-600"
+            positive ? "text-emerald-400" : "text-red-400"
           )}
         >
           {positive ? "+" : ""}

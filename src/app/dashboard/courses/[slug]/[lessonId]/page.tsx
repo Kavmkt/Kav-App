@@ -114,9 +114,9 @@ export default async function LessonPage({
                       key={l.id}
                       href={`/dashboard/courses/${course.slug}/${l.id}`}
                       className={cn(
-                        "block rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-black/[0.04]",
+                        "block rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-white/[0.07]",
                         l.id === lesson.id &&
-                          "bg-brand-soft font-medium text-brand-dark",
+                          "bg-brand-soft font-medium text-brand",
                         completedLessonIds.has(l.id) &&
                           l.id !== lesson.id &&
                           "text-foreground/40"

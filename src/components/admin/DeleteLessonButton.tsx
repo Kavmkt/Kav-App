@@ -21,7 +21,7 @@ export function DeleteLessonButton({
       onClick={() =>
         startTransition(() => deleteLessonAction(lessonId, courseId))
       }
-      className="text-foreground/30 hover:text-red-600 disabled:opacity-50"
+      className="text-foreground/30 hover:text-red-400 disabled:opacity-50"
     >
       <Trash2 size={14} />
     </button>

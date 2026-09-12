@@ -26,7 +26,7 @@ export function ResetPasswordButton({ clientId }: { clientId: string }) {
         {isPending ? "Gerando..." : "Gerar nova senha"}
       </Button>
       {result && (
-        <div className="rounded-lg border border-border-subtle bg-black/[0.02] p-3 font-mono text-xs">
+        <div className="rounded-lg border border-border-subtle bg-white/[0.05] p-3 font-mono text-xs">
           <p>{result.email}</p>
           <p className="font-semibold">{result.tempPassword}</p>
         </div>

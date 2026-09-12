@@ -11,6 +11,7 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { ToggleActiveButton } from "@/components/admin/ToggleActiveButton";
 import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 import { MetaCredentialsForm } from "@/components/admin/MetaCredentialsForm";
+import { ClientBrandingForm } from "@/components/admin/ClientBrandingForm";
 import { formatCurrency, formatNumber, initials } from "@/lib/utils";
 
 export default async function AdminClientDetailPage({
@@ -38,12 +39,21 @@ export default async function AdminClientDetailPage({
             ← Voltar para clientes
           </Link>
           <div className="mt-2 flex items-center gap-3">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-              style={{ background: client.logoColor }}
-            >
-              {initials(client.companyName)}
-            </span>
+            {client.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- logo do cliente pode vir de qualquer host externo
+              <img
+                src={client.logoUrl}
+                alt={client.companyName}
+                className="h-10 w-10 rounded-full bg-white/90 object-contain p-1"
+              />
+            ) : (
+              <span
+                className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                style={{ background: client.logoColor }}
+              >
+                {initials(client.companyName)}
+              </span>
+            )}
             <div>
               <h1 className="text-xl font-semibold tracking-tight">
                 {client.companyName}
@@ -152,6 +162,18 @@ export default async function AdminClientDetailPage({
               Use esta opção se o cliente esqueceu a senha ou se você quer
               gerar um novo acesso.
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Identidade visual</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ClientBrandingForm
+              clientId={client.id}
+              initialLogoUrl={client.logoUrl ?? ""}
+            />
           </CardContent>
         </Card>
       </div>

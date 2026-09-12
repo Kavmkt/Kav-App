@@ -20,7 +20,7 @@ export function DeleteModuleButton({
       onClick={() =>
         startTransition(() => deleteModuleAction(moduleId, courseId))
       }
-      className="flex items-center gap-1 text-xs text-red-600 hover:underline disabled:opacity-50"
+      className="flex items-center gap-1 text-xs text-red-400 hover:underline disabled:opacity-50"
     >
       <Trash2 size={13} /> Remover módulo
     </button>

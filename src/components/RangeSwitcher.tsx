@@ -18,7 +18,7 @@ export function RangeSwitcher({
   current: MetricRangeDays;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-lg bg-black/[0.04] p-0.5 text-xs">
+    <div className="flex items-center gap-1 rounded-lg bg-white/[0.07] p-0.5 text-xs">
       {METRIC_RANGE_OPTIONS.map((days) => (
         <Link
           key={days}
@@ -26,7 +26,7 @@ export function RangeSwitcher({
           className={cn(
             "rounded-md px-2.5 py-1 font-medium transition-colors",
             current === days
-              ? "bg-white text-foreground shadow-sm"
+              ? "bg-brand text-white shadow-sm"
               : "text-foreground/50 hover:text-foreground"
           )}
         >

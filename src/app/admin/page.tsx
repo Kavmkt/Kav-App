@@ -71,12 +71,21 @@ export default async function AdminOverviewPage() {
                       href={`/admin/clients/${client.id}`}
                       className="flex items-center gap-2.5 font-medium hover:text-brand"
                     >
-                      <span
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-                        style={{ background: client.logoColor }}
-                      >
-                        {initials(client.companyName)}
-                      </span>
+                      {client.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- logo do cliente pode vir de qualquer host externo
+                        <img
+                          src={client.logoUrl}
+                          alt={client.companyName}
+                          className="h-7 w-7 rounded-full bg-white/90 object-contain p-0.5"
+                        />
+                      ) : (
+                        <span
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+                          style={{ background: client.logoColor }}
+                        >
+                          {initials(client.companyName)}
+                        </span>
+                      )}
                       {client.companyName}
                     </Link>
                   </td>

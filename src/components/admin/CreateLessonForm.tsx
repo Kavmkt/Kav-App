@@ -46,37 +46,37 @@ export function CreateLessonForm({
   return (
     <form
       action={formAction}
-      className="space-y-2 rounded-lg border border-border-subtle bg-black/[0.015] p-3"
+      className="space-y-2 rounded-lg border border-border-subtle bg-white/[0.05] p-3"
     >
       <input
         name="title"
         required
         placeholder="Título da aula"
-        className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+        className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
       />
       <textarea
         name="content"
         required
         rows={3}
         placeholder="Conteúdo / texto de apoio da aula"
-        className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+        className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
       />
       <div className="flex gap-2">
         <input
           name="videoUrl"
           placeholder="URL do vídeo (opcional)"
-          className="flex-1 rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="flex-1 rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
         <input
           name="durationMinutes"
           type="number"
           min={1}
           defaultValue={10}
-          className="w-24 rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-24 rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       {state.error && (
-        <p className="text-xs text-red-700">{state.error}</p>
+        <p className="text-xs text-red-300">{state.error}</p>
       )}
       <div className="flex gap-2">
         <SubmitButton />

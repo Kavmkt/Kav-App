@@ -68,15 +68,19 @@ export function FollowersChart({ data }: { data: FollowerPoint[] }) {
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="followersFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#5b4dfb" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="#5b4dfb" stopOpacity={0} />
+            <stop offset="0%" stopColor="#4f8cff" stopOpacity={0.45} />
+            <stop offset="100%" stopColor="#4f8cff" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e6e7f0" vertical={false} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="rgba(255,255,255,0.08)"
+          vertical={false}
+        />
         <XAxis
           dataKey="date"
           tickFormatter={(v) => formatDate(v)}
-          tick={{ fontSize: 12, fill: "#8a8ba3" }}
+          tick={{ fontSize: 12, fill: "rgba(244,245,251,0.45)" }}
           axisLine={false}
           tickLine={false}
           minTickGap={24}
@@ -85,7 +89,7 @@ export function FollowersChart({ data }: { data: FollowerPoint[] }) {
           domain={yDomain}
           allowDecimals={false}
           tickFormatter={(v) => formatAxisTick(v)}
-          tick={{ fontSize: 12, fill: "#8a8ba3" }}
+          tick={{ fontSize: 12, fill: "rgba(244,245,251,0.45)" }}
           axisLine={false}
           tickLine={false}
           width={64}
@@ -98,14 +102,17 @@ export function FollowersChart({ data }: { data: FollowerPoint[] }) {
           ]}
           contentStyle={{
             borderRadius: 12,
-            border: "1px solid #e6e7f0",
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "#15151f",
+            color: "#f4f5fb",
             fontSize: 13,
           }}
+          labelStyle={{ color: "rgba(244,245,251,0.55)" }}
         />
         <Area
           type="monotone"
           dataKey="followers"
-          stroke="#5b4dfb"
+          stroke="#4f8cff"
           strokeWidth={2}
           fill="url(#followersFill)"
         />

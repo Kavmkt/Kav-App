@@ -32,7 +32,7 @@ export function LoginForm() {
           required
           autoComplete="email"
           placeholder="voce@empresa.com"
-          className="w-full rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -45,11 +45,11 @@ export function LoginForm() {
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="w-full rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       {state.error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-lg bg-red-400/10 px-3 py-2 text-sm text-red-300">
           {state.error}
         </p>
       )}

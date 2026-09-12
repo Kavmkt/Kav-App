@@ -30,7 +30,7 @@ export default async function CoursesPage() {
             <Link key={course.id} href={`/dashboard/courses/${course.slug}`}>
               <Card className="h-full transition-shadow hover:shadow-md">
                 <div
-                  className="flex h-28 items-center justify-center rounded-t-2xl"
+                  className="flex h-28 items-center justify-center rounded-t-3xl"
                   style={{
                     background: `linear-gradient(135deg, ${course.coverColor}, #12131a22)`,
                   }}
@@ -49,7 +49,7 @@ export default async function CoursesPage() {
                       </span>
                       <span>{course.progressPct}%</span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-black/[0.06]">
+                    <div className="h-1.5 w-full rounded-full bg-white/[0.08]">
                       <div
                         className="h-1.5 rounded-full bg-brand"
                         style={{ width: `${course.progressPct}%` }}

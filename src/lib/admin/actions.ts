@@ -233,3 +233,39 @@ export async function updateClientMetaAction(
   revalidatePath(`/admin/clients/${clientId}`);
   return { success: true };
 }
+
+const clientBrandingSchema = z.object({
+  logoUrl: z
+    .string()
+    .trim()
+    .url("Informe uma URL válida (https://...).")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type UpdateBrandingState = { error?: string; success?: boolean };
+
+export async function updateClientBrandingAction(
+  clientId: string,
+  _prevState: UpdateBrandingState,
+  formData: FormData
+): Promise<UpdateBrandingState> {
+  await requireAdminSession();
+
+  const parsed = clientBrandingSchema.safeParse({
+    logoUrl: formData.get("logoUrl") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  await prisma.client.update({
+    where: { id: clientId },
+    data: { logoUrl: parsed.data.logoUrl || null },
+  });
+
+  revalidatePath(`/admin/clients/${clientId}`);
+  revalidatePath("/dashboard");
+  return { success: true };
+}

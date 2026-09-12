@@ -28,7 +28,7 @@ export function CreateClientForm() {
   if (state.success) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-emerald-700">
+        <div className="flex items-center gap-2 text-emerald-300">
           <CheckCircle2 size={20} />
           <p className="font-medium">Cliente criado com sucesso!</p>
         </div>
@@ -37,7 +37,7 @@ export function CreateClientForm() {
           não ficará visível novamente — você pode gerar uma nova a qualquer
           momento na página do cliente.
         </p>
-        <div className="space-y-2 rounded-xl border border-border-subtle bg-black/[0.02] p-4 font-mono text-sm">
+        <div className="space-y-2 rounded-xl border border-border-subtle bg-white/[0.05] p-4 font-mono text-sm">
           <p>
             <span className="text-foreground/50">E-mail:</span>{" "}
             {state.success.email}
@@ -56,7 +56,7 @@ export function CreateClientForm() {
           </Link>
           <Link
             href="/admin"
-            className="inline-flex items-center justify-center rounded-xl border border-border-subtle px-4 py-2.5 text-sm font-medium hover:bg-black/[0.03]"
+            className="inline-flex items-center justify-center rounded-xl border border-border-subtle px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]"
           >
             Voltar para clientes
           </Link>
@@ -75,7 +75,7 @@ export function CreateClientForm() {
           name="companyName"
           required
           placeholder="Ex: Loja da Maria"
-          className="w-full rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -86,7 +86,7 @@ export function CreateClientForm() {
           name="contactName"
           required
           placeholder="Ex: Maria Silva"
-          className="w-full rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -98,7 +98,7 @@ export function CreateClientForm() {
           name="contactEmail"
           required
           placeholder="cliente@empresa.com"
-          className="w-full rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -108,11 +108,11 @@ export function CreateClientForm() {
         <input
           name="instagramHandle"
           placeholder="ex: lojadamaria"
-          className="w-full rounded-xl border border-border-subtle bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-xl border border-border-subtle bg-white/[0.04] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       {state.error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-lg bg-red-400/10 px-3 py-2 text-sm text-red-300">
           {state.error}
         </p>
       )}

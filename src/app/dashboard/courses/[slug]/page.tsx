@@ -63,12 +63,12 @@ export default async function CourseDetailPage({
                       key={lesson.id}
                       href={`/dashboard/courses/${course.slug}/${lesson.id}`}
                       className={cn(
-                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-black/[0.03]"
+                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/[0.06]"
                       )}
                     >
                       <span className="flex items-center gap-2.5">
                         {completed ? (
-                          <CheckCircle2 size={17} className="text-emerald-600" />
+                          <CheckCircle2 size={17} className="text-emerald-400" />
                         ) : (
                           <Circle size={17} className="text-foreground/30" />
                         )}

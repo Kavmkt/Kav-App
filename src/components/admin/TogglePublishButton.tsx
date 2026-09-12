@@ -17,7 +17,7 @@ export function TogglePublishButton({
       type="button"
       disabled={isPending}
       onClick={() => startTransition(() => toggleCoursePublishedAction(courseId))}
-      className="rounded-lg border border-border-subtle px-3 py-1.5 text-xs font-medium hover:bg-black/[0.03] disabled:opacity-50"
+      className="rounded-lg border border-border-subtle px-3 py-1.5 text-xs font-medium hover:bg-white/[0.06] disabled:opacity-50"
     >
       {published ? "Despublicar" : "Publicar"}
     </button>

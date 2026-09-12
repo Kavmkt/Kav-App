@@ -143,25 +143,25 @@ export default async function DashboardPage({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl bg-black/[0.03] p-3">
+              <div className="rounded-xl bg-white/[0.06] p-3">
                 <p className="text-foreground/50">Cliques</p>
                 <p className="mt-1 font-semibold">
                   {formatCompact(overview.totals.clicks)}
                 </p>
               </div>
-              <div className="rounded-xl bg-black/[0.03] p-3">
+              <div className="rounded-xl bg-white/[0.06] p-3">
                 <p className="text-foreground/50">Impressões</p>
                 <p className="mt-1 font-semibold">
                   {formatCompact(overview.totals.impressions)}
                 </p>
               </div>
-              <div className="rounded-xl bg-black/[0.03] p-3">
+              <div className="rounded-xl bg-white/[0.06] p-3">
                 <p className="text-foreground/50">Conversões</p>
                 <p className="mt-1 font-semibold">
                   {formatCompact(overview.totals.conversions)}
                 </p>
               </div>
-              <div className="rounded-xl bg-black/[0.03] p-3">
+              <div className="rounded-xl bg-white/[0.06] p-3">
                 <p className="text-foreground/50">CPC médio</p>
                 <p className="mt-1 font-semibold">
                   {formatCurrency(overview.totals.avgCpc)}

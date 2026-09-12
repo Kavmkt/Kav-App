@@ -44,7 +44,7 @@ export function MetaCredentialsForm({
         <input
           name="instagramHandle"
           defaultValue={initial.instagramHandle}
-          className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -55,7 +55,7 @@ export function MetaCredentialsForm({
           name="instagramUserId"
           defaultValue={initial.instagramUserId}
           placeholder="17841400000000000"
-          className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -66,7 +66,7 @@ export function MetaCredentialsForm({
           name="metaAdAccountId"
           defaultValue={initial.metaAdAccountId}
           placeholder="123456789012345"
-          className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div>
@@ -78,16 +78,16 @@ export function MetaCredentialsForm({
           type="password"
           defaultValue={initial.metaAccessToken}
           placeholder="EAAG..."
-          className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       {state.error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+        <p className="rounded-lg bg-red-400/10 px-3 py-2 text-xs text-red-300">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+        <p className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">
           Credenciais salvas.
         </p>
       )}

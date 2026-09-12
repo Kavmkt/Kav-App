@@ -43,6 +43,27 @@ conteúdo dos cursos.
   legenda completa, números exatos de curtidas/comentários/compartilhamentos
   e um link "Ver no Instagram" (quando o post tem `permalink`).
 
+## Identidade visual
+
+- O app usa um **tema escuro único** (sem alternância clara/escura), com
+  cards "glass" translúcidos com blur, cantos bem arredondados e acentos em
+  azul — tokens de cor em `src/app/globals.css`.
+- A marca da agência (**Kav Marketing e Performance**) aparece só em dois
+  lugares, por design: no menu (`src/components/layout/Logo.tsx`, usado em
+  `AppShell`) e no rodapé (`src/components/layout/Footer.tsx`), presente em
+  toda página autenticada e na tela de login. Não existe um arquivo de
+  logotipo oficial da agência neste projeto — o componente `Logo` é um
+  wordmark desenhado em código (ícone com gradiente + tipografia); basta
+  substituir esse componente por uma versão com o arquivo de marca real
+  quando ele existir.
+- **Logo por cliente**: o admin pode configurar a URL de uma imagem de
+  logotipo para cada cliente (campo `Client.logoUrl`, editável na página do
+  cliente em `/admin/clients/[id]`, seção "Identidade visual"). Quando
+  configurado, esse logo substitui o avatar de iniciais no menu lateral do
+  painel do cliente e nas listagens do admin. Como não há upload de arquivo
+  no app, o link deve apontar para uma imagem já hospedada (ex.: PNG/SVG com
+  fundo transparente).
+
 ## Configuração
 
 1. Copie o arquivo de variáveis de ambiente:

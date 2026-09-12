@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 type Tone = "success" | "info" | "issue";
 
 const toneClasses: Record<Tone, string> = {
-  success: "bg-emerald-50 text-emerald-800",
-  info: "bg-black/[0.04] text-foreground/60",
-  issue: "bg-amber-50 text-amber-800",
+  success: "bg-emerald-400/10 text-emerald-300",
+  info: "bg-white/[0.07] text-foreground/60",
+  issue: "bg-amber-400/10 text-amber-300",
 };
 
 const toneIcon: Record<Tone, typeof AlertTriangle> = {

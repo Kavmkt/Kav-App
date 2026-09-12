@@ -28,7 +28,7 @@ export function LessonCompleteToggle({
       variant={completed ? "secondary" : "primary"}
       onClick={handleClick}
       disabled={isPending}
-      className={cn(completed && "text-emerald-700")}
+      className={cn(completed && "text-emerald-300")}
     >
       <CheckCircle2 size={16} />
       {completed ? "Aula concluída" : "Marcar como concluída"}

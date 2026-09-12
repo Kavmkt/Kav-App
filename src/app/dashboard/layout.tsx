@@ -23,7 +23,9 @@ export default async function DashboardLayout({
   return (
     <AppShell
       navItems={navItems}
-      brandLabel={client?.companyName ?? "Cliente"}
+      workspaceLabel={client?.companyName ?? "Cliente"}
+      workspaceSubtitle={client?.plan ? `Plano ${client.plan}` : undefined}
+      workspaceLogoUrl={client?.logoUrl}
       userName={session.name}
       userSubtitle={client?.plan ? `Plano ${client.plan}` : session.email}
       headerActions={<RefreshButton clientId={session.clientId} />}

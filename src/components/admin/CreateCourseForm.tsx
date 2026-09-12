@@ -33,7 +33,7 @@ export function CreateCourseForm() {
           name="title"
           required
           placeholder="Ex: Instagram para pequenos negócios"
-          className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <div className="flex-1">
@@ -44,12 +44,12 @@ export function CreateCourseForm() {
           name="description"
           required
           placeholder="Uma frase sobre o curso"
-          className="w-full rounded-lg border border-border-subtle bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
+          className="w-full rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
       <SubmitButton />
       {state.error && (
-        <p className="text-xs text-red-700 sm:hidden">{state.error}</p>
+        <p className="text-xs text-red-300 sm:hidden">{state.error}</p>
       )}
     </form>
   );

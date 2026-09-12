@@ -17,7 +17,7 @@ export default async function AdminLayout({
   return (
     <AppShell
       navItems={navItems}
-      brandLabel="Painel administrativo"
+      workspaceLabel="Painel administrativo"
       userName={session.name}
       userSubtitle="Administrador"
     >

@@ -62,6 +62,9 @@ model Client {
   metaAdAccountId  String?
   metaAccessToken  String?
   logoColor        String   @default("#6366f1")
+  /// URL de uma imagem do logotipo do cliente, exibida no lugar do avatar de
+  /// iniciais no painel dele. Opcional — configurado pelo admin.
+  logoUrl          String?
   plan             String   @default("Essencial")
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
