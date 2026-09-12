@@ -2,8 +2,10 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import {
   fetchAdAccountInsights,
+  fetchInstagramMedia,
   fetchInstagramProfile,
   isMetaConfigured,
+  mapMediaTypeToPostType,
   resolveAccessToken,
 } from "@/lib/integrations/meta";
 
@@ -65,16 +67,51 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
             followers: profile.followersCount,
             following: profile.followsCount,
             postsCount: profile.mediaCount,
+            // A API básica de perfil não retorna engajamento/alcance/visitas
+            // (isso exige o endpoint de Insights com permissões extras);
+            // por ora mantemos o último valor conhecido só para essas 3
+            // métricas, mas seguidores/seguindo/posts já são 100% reais.
             avgEngagementRate: last?.avgEngagementRate ?? 3.5,
             profileViews: last?.profileViews ?? 0,
             reach: last?.reach ?? 0,
+            isDemo: false,
           },
           update: {
             followers: profile.followersCount,
             following: profile.followsCount,
             postsCount: profile.mediaCount,
+            isDemo: false,
           },
         });
+      }
+
+      if (client.instagramUserId) {
+        const media = await fetchInstagramMedia(client.instagramUserId, accessToken);
+        for (const item of media) {
+          await prisma.post.upsert({
+            where: { externalId: item.id },
+            create: {
+              clientId,
+              externalId: item.id,
+              type: mapMediaTypeToPostType(item.mediaType, item.mediaProductType),
+              caption: item.caption,
+              mediaUrl: item.mediaUrl,
+              permalink: item.permalink,
+              likes: item.likeCount ?? 0,
+              comments: item.commentsCount ?? 0,
+              postedAt: new Date(item.timestamp),
+              isDemo: false,
+            },
+            update: {
+              caption: item.caption,
+              mediaUrl: item.mediaUrl,
+              permalink: item.permalink,
+              likes: item.likeCount ?? 0,
+              comments: item.commentsCount ?? 0,
+              isDemo: false,
+            },
+          });
+        }
       }
 
       if (client.metaAdAccountId) {
@@ -92,11 +129,13 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
             impressions: insights.impressions,
             clicks: insights.clicks,
             conversions: 0,
+            isDemo: false,
           },
           update: {
             spend: insights.spend,
             impressions: insights.impressions,
             clicks: insights.clicks,
+            isDemo: false,
           },
         });
       }

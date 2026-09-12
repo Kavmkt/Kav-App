@@ -88,6 +88,20 @@ A partir daí, o botão "Atualizar agora" e a atualização automática passam a
 buscar dados reais em vez de simulados. Toda a lógica de integração fica em
 `src/lib/integrations/meta.ts` e `src/lib/data/sync.ts`.
 
+O que já é 100% real hoje: seguidores/seguindo/quantidade de posts (perfil),
+posts individuais (legenda, mídia, link, curtidas e comentários) e
+investimento/impressões/cliques de anúncios. `avgEngagementRate`,
+`profileViews`, `reach` do perfil e `shares`/`saves`/`reach`/`impressions`
+por post ainda não têm integração real — exigem o endpoint de Insights com
+permissões adicionais e ficam com o último valor conhecido (ou zero).
+
+**Demonstração vs. real nunca se misturam:** cada snapshot de métrica, post
+e gasto com anúncios tem uma flag `isDemo`. Assim que existir pelo menos um
+dado real, ele passa a ser exibido sozinho no lugar do histórico de
+demonstração (que fica guardado no banco, mas oculto) — isso evita quedas ou
+saltos bruscos no gráfico quando um cliente migra de demonstração para dados
+reais.
+
 ## Scripts
 
 | Comando             | Descrição                                    |
@@ -128,5 +142,5 @@ src/
   admin)
 - Upload de vídeo/anexos para as aulas (hoje aceita uma URL de vídeo)
 - Webhooks da Meta para atualização em tempo real real (em vez de polling)
-- Métricas por post vindas da Graph API (hoje só o perfil e os anúncios têm
-  integração real; posts usam sempre dados de demonstração)
+- Métricas de Insights por post (alcance, impressões, salvamentos,
+  compartilhamentos) — hoje só curtidas/comentários vêm da API real

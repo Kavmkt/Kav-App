@@ -85,6 +85,9 @@ model MetricSnapshot {
   avgEngagementRate Float
   profileViews      Int
   reach             Int
+  /// true = gerado pelo seed/simulação de demonstração; false = veio da Meta Graph API de verdade.
+  /// Usado para nunca misturar os dois numa mesma série/gráfico (veja src/lib/data/queries.ts).
+  isDemo            Boolean  @default(true)
   createdAt         DateTime @default(now())
 
   @@unique([clientId, date])
@@ -95,6 +98,8 @@ model Post {
   id          String    @id @default(cuid())
   clientId    String
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// ID da mídia na Meta Graph API (para não duplicar em sincronizações repetidas). Nulo para posts de demonstração.
+  externalId  String?   @unique
   platform    String    @default("INSTAGRAM")
   type        PostType  @default(IMAGE)
   caption     String?
@@ -108,6 +113,8 @@ model Post {
   impressions Int       @default(0)
   postedAt    DateTime
   createdAt   DateTime  @default(now())
+  /// true = post de demonstração; false = sincronizado de verdade do Instagram.
+  isDemo      Boolean   @default(true)
 
   @@index([clientId, postedAt])
 }
@@ -141,6 +148,8 @@ model AdSpendSnapshot {
   impressions Int
   clicks      Int
   conversions Int
+  /// true = gerado por simulação de demonstração; false = veio da Marketing API de verdade.
+  isDemo      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   @@unique([clientId, date])

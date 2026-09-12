@@ -69,6 +69,7 @@ export type InstagramMediaItem = {
   id: string;
   caption?: string;
   mediaType: string;
+  mediaProductType?: string;
   mediaUrl?: string;
   permalink?: string;
   timestamp: string;
@@ -79,12 +80,12 @@ export type InstagramMediaItem = {
 export async function fetchInstagramMedia(
   instagramUserId: string,
   accessToken: string,
-  limit = 12
+  limit = 25
 ): Promise<InstagramMediaItem[]> {
   const url = new URL(`${GRAPH_BASE_URL}/${instagramUserId}/media`);
   url.searchParams.set(
     "fields",
-    "id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count"
+    "id,caption,media_type,media_product_type,media_url,permalink,timestamp,like_count,comments_count"
   );
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("access_token", accessToken);
@@ -99,6 +100,7 @@ export async function fetchInstagramMedia(
       id: string;
       caption?: string;
       media_type: string;
+      media_product_type?: string;
       media_url?: string;
       permalink?: string;
       timestamp: string;
@@ -110,12 +112,34 @@ export async function fetchInstagramMedia(
     id: item.id,
     caption: item.caption,
     mediaType: item.media_type,
+    mediaProductType: item.media_product_type,
     mediaUrl: item.media_url,
     permalink: item.permalink,
     timestamp: item.timestamp,
     likeCount: item.like_count,
     commentsCount: item.comments_count,
   }));
+}
+
+/**
+ * Converte o tipo de mídia da Graph API para o enum PostType do nosso banco.
+ * Reels chegam como media_type "VIDEO" + media_product_type "REELS", então
+ * precisamos olhar os dois campos para não classificar tudo como "VIDEO".
+ */
+export function mapMediaTypeToPostType(
+  mediaType: string,
+  mediaProductType?: string
+): "IMAGE" | "VIDEO" | "CAROUSEL" | "REEL" {
+  if (mediaProductType === "REELS") return "REEL";
+  switch (mediaType) {
+    case "VIDEO":
+      return "VIDEO";
+    case "CAROUSEL_ALBUM":
+      return "CAROUSEL";
+    case "IMAGE":
+    default:
+      return "IMAGE";
+  }
 }
 
 export type AdAccountInsights = {

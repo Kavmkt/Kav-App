@@ -7,23 +7,58 @@ export async function getClientById(clientId: string) {
   return prisma.client.findUnique({ where: { id: clientId } });
 }
 
+/**
+ * Nunca misturamos série real com série de demonstração no mesmo gráfico —
+ * isso criaria descontinuidades absurdas (ex: cair de "seguidores fictícios"
+ * pra "seguidores reais" de um dia pro outro). Assim que existir pelo menos
+ * um dado real (isDemo: false) no período, ele sozinho vira a série exibida;
+ * enquanto não houver nenhum, mostramos a simulação de demonstração.
+ */
+async function getMetricSeries(clientId: string, since: Date) {
+  const real = await prisma.metricSnapshot.findMany({
+    where: { clientId, isDemo: false, date: { gte: since } },
+    orderBy: { date: "asc" },
+  });
+  if (real.length > 0) return real;
+  return prisma.metricSnapshot.findMany({
+    where: { clientId, isDemo: true, date: { gte: since } },
+    orderBy: { date: "asc" },
+  });
+}
+
+async function getAdSeries(clientId: string, since: Date) {
+  const real = await prisma.adSpendSnapshot.findMany({
+    where: { clientId, isDemo: false, date: { gte: since } },
+    orderBy: { date: "asc" },
+  });
+  if (real.length > 0) return real;
+  return prisma.adSpendSnapshot.findMany({
+    where: { clientId, isDemo: true, date: { gte: since } },
+    orderBy: { date: "asc" },
+  });
+}
+
+async function getPosts(clientId: string, take?: number) {
+  const real = await prisma.post.findMany({
+    where: { clientId, isDemo: false },
+    orderBy: { postedAt: "desc" },
+    take,
+  });
+  if (real.length > 0) return real;
+  return prisma.post.findMany({
+    where: { clientId, isDemo: true },
+    orderBy: { postedAt: "desc" },
+    take,
+  });
+}
+
 export async function getClientOverview(clientId: string) {
   const since = new Date(Date.now() - THIRTY_DAYS_MS);
 
   const [metricSeries, adSeries, recentPosts, campaigns] = await Promise.all([
-    prisma.metricSnapshot.findMany({
-      where: { clientId, date: { gte: since } },
-      orderBy: { date: "asc" },
-    }),
-    prisma.adSpendSnapshot.findMany({
-      where: { clientId, date: { gte: since } },
-      orderBy: { date: "asc" },
-    }),
-    prisma.post.findMany({
-      where: { clientId },
-      orderBy: { postedAt: "desc" },
-      take: 6,
-    }),
+    getMetricSeries(clientId, since),
+    getAdSeries(clientId, since),
+    getPosts(clientId, 6),
     prisma.adCampaign.findMany({
       where: { clientId },
       orderBy: { createdAt: "desc" },
@@ -62,10 +97,7 @@ export async function getClientOverview(clientId: string) {
 }
 
 export async function getClientPosts(clientId: string) {
-  return prisma.post.findMany({
-    where: { clientId },
-    orderBy: { postedAt: "desc" },
-  });
+  return getPosts(clientId);
 }
 
 export async function getClientCampaigns(clientId: string) {
@@ -75,10 +107,7 @@ export async function getClientCampaigns(clientId: string) {
       where: { clientId },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.adSpendSnapshot.findMany({
-      where: { clientId, date: { gte: since } },
-      orderBy: { date: "asc" },
-    }),
+    getAdSeries(clientId, since),
   ]);
   return { campaigns, adSeries };
 }
