@@ -1,50 +1,68 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { jwtVerify } from "jose";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 
-async function getRoleFromCookie(
-  request: NextRequest
-): Promise<"ADMIN" | "CLIENT" | null> {
+/**
+ * ATENÇÃO: isto precisa usar o MESMO `verifySessionToken` que
+ * `src/lib/auth/session.ts#getSession()` usa nas páginas — foi exatamente
+ * essa validação estar duplicada e divergente entre os dois lugares (aqui
+ * só checava se dava pra extrair um `role` do JWT; nas páginas,
+ * `verifySessionToken` exige também `username`) que causou o loop de
+ * redirecionamento em produção: um cookie de sessão emitido ANTES do JWT
+ * ganhar o claim `username` passava aqui (tinha `role` válido) mas falhava
+ * na página (`username` ausente) — página manda de volta pro /login, e o
+ * middleware manda de volta pro /dashboard/admin por achar o cookie válido,
+ * infinitamente. Nunca reimplemente essa checagem separada de novo.
+ */
+async function getSessionFromRequest(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) return null;
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
-    return (payload.role as "ADMIN" | "CLIENT") ?? null;
-  } catch {
-    return null;
-  }
+  return verifySessionToken(token);
 }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const role = await getRoleFromCookie(request);
+  const hadCookie = Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+  const session = await getSessionFromRequest(request);
+  // Tinha cookie mas a validação falhou (formato antigo, assinatura
+  // inválida, expirado etc.) — precisa ser apagado do navegador, senão ele
+  // continua sendo reenviado pra sempre em toda requisição.
+  const hasStaleCookie = hadCookie && !session;
+
+  let response: NextResponse;
 
   if (pathname.startsWith("/login")) {
-    if (role) {
-      return NextResponse.redirect(
-        new URL(role === "ADMIN" ? "/admin" : "/dashboard", request.url)
-      );
+    response = session
+      ? NextResponse.redirect(
+          new URL(session.role === "ADMIN" ? "/admin" : "/dashboard", request.url)
+        )
+      : NextResponse.next();
+  } else if (pathname.startsWith("/admin")) {
+    if (!session) {
+      response = NextResponse.redirect(new URL("/login", request.url));
+    } else if (session.role !== "ADMIN") {
+      response = NextResponse.redirect(new URL("/dashboard", request.url));
+    } else {
+      response = NextResponse.next();
     }
-    return NextResponse.next();
+  } else if (pathname.startsWith("/dashboard")) {
+    if (!session) {
+      response = NextResponse.redirect(new URL("/login", request.url));
+    } else if (session.role !== "CLIENT") {
+      response = NextResponse.redirect(new URL("/admin", request.url));
+    } else {
+      response = NextResponse.next();
+    }
+  } else {
+    response = NextResponse.next();
   }
 
-  if (pathname.startsWith("/admin")) {
-    if (!role) return NextResponse.redirect(new URL("/login", request.url));
-    if (role !== "ADMIN")
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (hasStaleCookie) {
+    response.cookies.delete(SESSION_COOKIE_NAME);
   }
 
-  if (pathname.startsWith("/dashboard")) {
-    if (!role) return NextResponse.redirect(new URL("/login", request.url));
-    if (role !== "CLIENT")
-      return NextResponse.redirect(new URL("/admin", request.url));
-  }
-
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/login", "/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/", "/login", "/account", "/dashboard/:path*", "/admin/:path*"],
 };
