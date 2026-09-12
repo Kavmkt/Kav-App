@@ -13,11 +13,6 @@ import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 import { MetaCredentialsForm } from "@/components/admin/MetaCredentialsForm";
 import { formatCurrency, formatNumber, initials } from "@/lib/utils";
 
-// Ver comentário equivalente em src/app/dashboard/layout.tsx — o
-// RefreshButton nesta página dispara a mesma sincronização (com possível
-// backfill de 30 dias na primeira vez).
-export const maxDuration = 60;
-
 export default async function AdminClientDetailPage({
   params,
 }: {

@@ -37,6 +37,24 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/**
+ * Executa uma lista de tarefas em lotes de tamanho fixo (concorrentes
+ * dentro do lote, sequenciais entre lotes) em vez de todas de uma vez.
+ * Disparar ~85 upserts simultâneos (o pico do backfill de 30 dias) pode
+ * estourar o limite de conexões do pool do Postgres/Neon em ambiente
+ * serverless — um erro clássico de Prisma nesse cenário. Lotes pequenos
+ * mantêm o ganho de velocidade do paralelismo sem abrir conexões demais
+ * de uma vez só.
+ */
+async function runBatched<T>(
+  tasks: Array<() => Promise<T>>,
+  batchSize: number
+): Promise<void> {
+  for (let i = 0; i < tasks.length; i += batchSize) {
+    await Promise.all(tasks.slice(i, i + batchSize).map((task) => task()));
+  }
+}
+
 export type SyncResult = {
   usedRealData: boolean;
   message: string;
@@ -129,8 +147,9 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
             : Promise.resolve(null),
         ]);
 
-      // --- 2) Grava tudo em paralelo (não um upsert de cada vez) ---
-      const writes: Promise<unknown>[] = [];
+      // --- 2) Grava tudo em lotes pequenos (não 85 conexões de uma vez,
+      // nem uma de cada vez) ---
+      const writes: Array<() => Promise<unknown>> = [];
 
       if (profile && client.instagramUserId) {
         if (shouldBackfillMetrics) {
@@ -142,7 +161,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
               profile.followersCount
             );
             writes.push(
-              ...reconstructed.map((point) => {
+              ...reconstructed.map((point) => () => {
                 const day = parseDayString(point.date);
                 return prisma.metricSnapshot.upsert({
                   where: { clientId_date: { clientId, date: day } },
@@ -173,7 +192,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
           where: { clientId },
           orderBy: { date: "desc" },
         });
-        writes.push(
+        writes.push(() =>
           prisma.metricSnapshot.upsert({
             where: { clientId_date: { clientId, date: today } },
             create: {
@@ -205,7 +224,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
       }
 
       for (const item of media) {
-        writes.push(
+        writes.push(() =>
           prisma.post.upsert({
             where: { externalId: item.id },
             create: {
@@ -238,7 +257,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
             notes.push(`histórico de investimento falhou: ${adHistory.message}`);
           } else {
             writes.push(
-              ...adHistory.map((day) => {
+              ...adHistory.map((day) => () => {
                 const date = parseDayString(day.date);
                 return prisma.adSpendSnapshot.upsert({
                   where: { clientId_date: { clientId, date } },
@@ -269,7 +288,7 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
         }
 
         if (adToday) {
-          writes.push(
+          writes.push(() =>
             prisma.adSpendSnapshot.upsert({
               where: { clientId_date: { clientId, date: today } },
               create: {
@@ -292,7 +311,10 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
         }
       }
 
-      await Promise.all(writes);
+      // Lotes de 8: rápido o suficiente (11 "ondas" pra 85 tarefas em vez
+      // de 85 round-trips sequenciais), sem abrir dezenas de conexões
+      // simultâneas com o Postgres.
+      await runBatched(writes, 8);
 
       const base = "Dados atualizados a partir da Meta Graph API.";
       return {
