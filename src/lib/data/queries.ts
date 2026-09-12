@@ -52,6 +52,34 @@ async function getPosts(clientId: string, take?: number) {
   });
 }
 
+/**
+ * Taxa de engajamento média calculada de verdade a partir dos posts reais
+ * (curtidas + comentários) sobre o total de seguidores atual — em vez de
+ * usar o campo `avgEngagementRate` do MetricSnapshot, que só é real quando
+ * vem da Meta (hoje só o valor gravado no primeiro sync/seed, nunca
+ * recalculado). Só entra em ação quando o cliente já tem posts REAIS
+ * sincronizados (isDemo: false); sem isso, cai no último valor conhecido
+ * do MetricSnapshot (demonstração ou o padrão inicial).
+ */
+async function getRealEngagementRate(
+  clientId: string,
+  followers: number
+): Promise<number | null> {
+  if (followers <= 0) return null;
+  const realPosts = await prisma.post.findMany({
+    where: { clientId, isDemo: false },
+    orderBy: { postedAt: "desc" },
+    take: 12,
+    select: { likes: true, comments: true },
+  });
+  if (realPosts.length === 0) return null;
+
+  const avgInteractions =
+    realPosts.reduce((sum, p) => sum + p.likes + p.comments, 0) /
+    realPosts.length;
+  return (avgInteractions / followers) * 100;
+}
+
 export async function getClientOverview(clientId: string) {
   const since = new Date(Date.now() - THIRTY_DAYS_MS);
 
@@ -71,6 +99,11 @@ export async function getClientOverview(clientId: string) {
   const followerGrowth =
     latest && first ? latest.followers - first.followers : 0;
 
+  const realEngagementRate = latest
+    ? await getRealEngagementRate(clientId, latest.followers)
+    : null;
+  const engagementRate = realEngagementRate ?? latest?.avgEngagementRate ?? null;
+
   const totalSpend = adSeries.reduce((sum, s) => sum + s.spend, 0);
   const totalClicks = adSeries.reduce((sum, s) => sum + s.clicks, 0);
   const totalImpressions = adSeries.reduce((sum, s) => sum + s.impressions, 0);
@@ -81,6 +114,7 @@ export async function getClientOverview(clientId: string) {
   return {
     latest,
     followerGrowth,
+    engagementRate,
     metricSeries,
     adSeries,
     recentPosts,

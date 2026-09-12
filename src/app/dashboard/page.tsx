@@ -40,7 +40,11 @@ export default async function DashboardPage() {
         />
         <StatCard
           label="Engajamento médio"
-          value={latest ? formatPercent(latest.avgEngagementRate) : "—"}
+          value={
+            overview.engagementRate !== null
+              ? formatPercent(overview.engagementRate)
+              : "—"
+          }
           icon={Heart}
           tone="green"
         />

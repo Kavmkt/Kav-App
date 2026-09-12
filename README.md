@@ -89,11 +89,25 @@ buscar dados reais em vez de simulados. Toda a lógica de integração fica em
 `src/lib/integrations/meta.ts` e `src/lib/data/sync.ts`.
 
 O que já é 100% real hoje: seguidores/seguindo/quantidade de posts (perfil),
-posts individuais (legenda, mídia, link, curtidas e comentários) e
-investimento/impressões/cliques de anúncios. `avgEngagementRate`,
-`profileViews`, `reach` do perfil e `shares`/`saves`/`reach`/`impressions`
-por post ainda não têm integração real — exigem o endpoint de Insights com
-permissões adicionais e ficam com o último valor conhecido (ou zero).
+posts individuais (legenda, mídia, link, curtidas e comentários),
+investimento/impressões/cliques de anúncios, e o **engajamento médio**
+exibido no dashboard (calculado a partir de curtidas+comentários reais dos
+últimos posts ÷ seguidores — não é um valor gravado, é recalculado a cada
+carregamento da página). `profileViews` e `reach` do perfil, e
+`shares`/`saves`/`reach`/`impressions` por post ainda não têm integração
+real — exigem o endpoint de Insights com permissões adicionais e ficam com
+o último valor conhecido (ou zero).
+
+**Histórico real desde o primeiro sync:** na primeira vez que um cliente
+sincroniza com sucesso, o app busca até 30 dias de histórico real via
+Insights (`follower_count` com `period=day` para seguidores — que retorna
+o ganho diário, não o total; o total de cada dia é reconstruído de trás
+pra frente a partir do total de hoje — e `time_increment=1` na Marketing
+API para investimento diário) em vez de começar do zero e esperar os dias
+passarem. Se a conta não tiver esse histórico disponível (permissão
+faltando, conta muito nova, etc.), o backfill falha silenciosamente e o
+app simplesmente segue acumulando 1 dia real por sincronização, como
+antes.
 
 **Demonstração vs. real nunca se misturam:** cada snapshot de métrica, post
 e gasto com anúncios tem uma flag `isDemo`. Assim que existir pelo menos um

@@ -2,15 +2,25 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import {
   fetchAdAccountInsights,
+  fetchAdAccountInsightsHistory,
+  fetchInstagramFollowerCountHistory,
   fetchInstagramMedia,
   fetchInstagramProfile,
   isMetaConfigured,
   mapMediaTypeToPostType,
+  reconstructFollowerHistory,
   resolveAccessToken,
 } from "@/lib/integrations/meta";
 
 function startOfToday() {
   const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Converte uma data "YYYY-MM-DD" da Meta pra meia-noite local, igual startOfToday(). */
+function parseDayString(dateStr: string) {
+  const d = new Date(`${dateStr}T00:00:00`);
   d.setHours(0, 0, 0, 0);
   return d;
 }
@@ -50,11 +60,63 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
 
   if (configured && accessToken) {
     try {
+      // Só fazemos o backfill de histórico UMA vez (na primeira sincronização
+      // real de um cliente) — depois disso cada dia já grava seu próprio
+      // ponto real, não tem por que rebuscar 30 dias de novo a cada sync.
+      const hasRealHistory = await prisma.metricSnapshot.findFirst({
+        where: { clientId, isDemo: false },
+        select: { id: true },
+      });
+
       if (client.instagramUserId) {
         const profile = await fetchInstagramProfile(
           client.instagramUserId,
           accessToken
         );
+
+        if (!hasRealHistory) {
+          try {
+            const history = await fetchInstagramFollowerCountHistory(
+              client.instagramUserId,
+              accessToken,
+              30
+            );
+            const reconstructed = reconstructFollowerHistory(
+              history,
+              profile.followersCount
+            );
+            for (const point of reconstructed) {
+              const day = parseDayString(point.date);
+              await prisma.metricSnapshot.upsert({
+                where: { clientId_date: { clientId, date: day } },
+                create: {
+                  clientId,
+                  date: day,
+                  followers: point.followers,
+                  following: profile.followsCount,
+                  postsCount: profile.mediaCount,
+                  avgEngagementRate: 0,
+                  profileViews: 0,
+                  reach: 0,
+                  isDemo: false,
+                },
+                update: {
+                  followers: point.followers,
+                  isDemo: false,
+                },
+              });
+            }
+          } catch (backfillErr) {
+            // Backfill é um "bônus" — se falhar (conta sem histórico
+            // suficiente, permissão faltando, etc.) seguimos normalmente e
+            // gravamos pelo menos o dia de hoje logo abaixo.
+            console.error(
+              "[meta-sync] backfill de seguidores falhou, seguindo sem histórico:",
+              backfillErr
+            );
+          }
+        }
+
         const last = await prisma.metricSnapshot.findFirst({
           where: { clientId },
           orderBy: { date: "desc" },
@@ -71,6 +133,9 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
             // (isso exige o endpoint de Insights com permissões extras);
             // por ora mantemos o último valor conhecido só para essas 3
             // métricas, mas seguidores/seguindo/posts já são 100% reais.
+            // "Engajamento médio" exibido no dashboard, no entanto, é
+            // recalculado de verdade a partir dos posts reais — veja
+            // getClientOverview em src/lib/data/queries.ts.
             avgEngagementRate: last?.avgEngagementRate ?? 3.5,
             profileViews: last?.profileViews ?? 0,
             reach: last?.reach ?? 0,
@@ -115,6 +180,42 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
       }
 
       if (client.metaAdAccountId) {
+        if (!hasRealHistory) {
+          try {
+            const history = await fetchAdAccountInsightsHistory(
+              client.metaAdAccountId,
+              accessToken,
+              30
+            );
+            for (const day of history) {
+              const date = parseDayString(day.date);
+              await prisma.adSpendSnapshot.upsert({
+                where: { clientId_date: { clientId, date } },
+                create: {
+                  clientId,
+                  date,
+                  spend: day.spend,
+                  impressions: day.impressions,
+                  clicks: day.clicks,
+                  conversions: 0,
+                  isDemo: false,
+                },
+                update: {
+                  spend: day.spend,
+                  impressions: day.impressions,
+                  clicks: day.clicks,
+                  isDemo: false,
+                },
+              });
+            }
+          } catch (backfillErr) {
+            console.error(
+              "[meta-sync] backfill de investimento falhou, seguindo sem histórico:",
+              backfillErr
+            );
+          }
+        }
+
         const insights = await fetchAdAccountInsights(
           client.metaAdAccountId,
           accessToken,
@@ -142,7 +243,9 @@ export async function syncClient(clientId: string): Promise<SyncResult> {
 
       return {
         usedRealData: true,
-        message: "Dados atualizados a partir da Meta Graph API.",
+        message: hasRealHistory
+          ? "Dados atualizados a partir da Meta Graph API."
+          : "Dados atualizados — histórico dos últimos 30 dias importado da Meta Graph API.",
       };
     } catch (err) {
       console.error("[meta-sync] falha ao buscar dados reais:", err);

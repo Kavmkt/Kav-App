@@ -142,6 +142,138 @@ export function mapMediaTypeToPostType(
   }
 }
 
+export type FollowerCountHistoryPoint = {
+  /** Data no formato YYYY-MM-DD (fim do período do dia, conforme a API retorna). */
+  date: string;
+  /** Seguidores GANHOS (ou perdidos, se negativo) NAQUELE dia — não é o total acumulado. */
+  delta: number;
+};
+
+/**
+ * Busca o histórico diário de novos seguidores via Instagram Insights
+ * (métrica `follower_count`, period=day). Isso retorna quantos seguidores
+ * a conta ganhou EM CADA DIA — não o total acumulado —, então quem chama
+ * isso precisa reconstruir o total de cada dia a partir de um total
+ * conhecido (veja `reconstructFollowerHistory` abaixo). A Meta limita esse
+ * endpoint a no máximo ~30 dias de histórico por chamada.
+ */
+export async function fetchInstagramFollowerCountHistory(
+  instagramUserId: string,
+  accessToken: string,
+  days = 30
+): Promise<FollowerCountHistoryPoint[]> {
+  const until = new Date();
+  const since = new Date(until);
+  since.setDate(since.getDate() - days);
+
+  const url = new URL(`${GRAPH_BASE_URL}/${instagramUserId}/insights`);
+  url.searchParams.set("metric", "follower_count");
+  url.searchParams.set("period", "day");
+  url.searchParams.set("since", since.toISOString().slice(0, 10));
+  url.searchParams.set("until", until.toISOString().slice(0, 10));
+  url.searchParams.set("access_token", accessToken);
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `Meta Graph API (histórico de seguidores) falhou: ${res.status} ${body}`
+    );
+  }
+  const json = (await res.json()) as {
+    data: Array<{
+      name: string;
+      period: string;
+      values: Array<{ value: number; end_time: string }>;
+    }>;
+  };
+  const metric = json.data?.find((d) => d.name === "follower_count");
+  if (!metric) return [];
+  return metric.values.map((v) => ({
+    date: v.end_time.slice(0, 10),
+    delta: v.value,
+  }));
+}
+
+/**
+ * Reconstrói o total ABSOLUTO de seguidores em cada dia a partir dos
+ * deltas diários + o total de hoje (esse sim exato, vindo do perfil).
+ * Caminha de trás pra frente: total(ontem) = total(hoje) - delta(hoje).
+ *
+ * Única imprecisão possível: o delta do dia de hoje pode estar
+ * incompleto (o dia ainda não acabou quando sincronizamos), então o
+ * total reconstruído de "ontem" pode ficar levemente impreciso — mas só
+ * dessa vez, no backfill inicial; dali em diante cada dia grava o valor
+ * exato vindo do perfil.
+ */
+export function reconstructFollowerHistory(
+  history: FollowerCountHistoryPoint[],
+  todayFollowers: number
+): Array<{ date: string; followers: number }> {
+  const points: Array<{ date: string; followers: number }> = [];
+  let runningTotal = todayFollowers;
+  // history vem do mais antigo pro mais recente; percorremos ao contrário.
+  for (let i = history.length - 1; i >= 0; i--) {
+    points.push({ date: history[i].date, followers: runningTotal });
+    runningTotal -= history[i].delta;
+  }
+  return points;
+}
+
+export type AdInsightsDayPoint = {
+  date: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+};
+
+/**
+ * Busca o gasto/impressões/cliques dia a dia dos últimos N dias
+ * (time_increment=1), para preencher de uma vez o histórico real de
+ * investimento na primeira sincronização de um cliente.
+ */
+export async function fetchAdAccountInsightsHistory(
+  adAccountId: string,
+  accessToken: string,
+  days = 30
+): Promise<AdInsightsDayPoint[]> {
+  const accountPath = adAccountId.startsWith("act_")
+    ? adAccountId
+    : `act_${adAccountId}`;
+  const until = new Date();
+  const since = new Date(until);
+  since.setDate(since.getDate() - days);
+
+  const url = new URL(`${GRAPH_BASE_URL}/${accountPath}/insights`);
+  url.searchParams.set("fields", "spend,impressions,clicks");
+  url.searchParams.set("time_increment", "1");
+  url.searchParams.set("since", since.toISOString().slice(0, 10));
+  url.searchParams.set("until", until.toISOString().slice(0, 10));
+  url.searchParams.set("access_token", accessToken);
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `Meta Marketing API (histórico de investimento) falhou: ${res.status} ${body}`
+    );
+  }
+  const json = (await res.json()) as {
+    data: Array<{
+      spend?: string;
+      impressions?: string;
+      clicks?: string;
+      date_start: string;
+    }>;
+  };
+  return (json.data ?? []).map((row) => ({
+    date: row.date_start,
+    spend: Number(row.spend ?? 0),
+    impressions: Number(row.impressions ?? 0),
+    clicks: Number(row.clicks ?? 0),
+  }));
+}
+
 export type AdAccountInsights = {
   spend: number;
   impressions: number;
