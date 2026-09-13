@@ -38,6 +38,14 @@ src/
     AuthContext.jsx   # Estado global de autenticação
   utils/
     dateHelpers.js    # Regra dos 15 dias, formatação de datas
+
+scripts/
+  seed.js              # Popula pacotes/itens de exemplo (firebase-admin)
+
+firebase.json           # Aponta para firestore.rules/indexes e storage.rules
+firestore.rules         # Regras de segurança do Firestore
+firestore.indexes.json  # Índices compostos (queries com múltiplos where)
+storage.rules           # Regras de segurança do Storage
 ```
 
 ## Fluxo do MVP
@@ -171,15 +179,34 @@ criar duplicados.
    região.
    - Crie as coleções `users`, `packages`, `items` e `subscriptions` com
      os exemplos acima (o documento de `users/{uid}` usa o UID copiado no
-     passo anterior).
+     passo anterior) — ou rode `npm run seed` (veja "Populando dados de
+     exemplo" abaixo) para criar pacotes e itens automaticamente.
    - Cole o conteúdo de [`firestore.rules`](./firestore.rules) em
      Firestore Database → **Regras**, e publique. A coleção `selections`
      é criada automaticamente pelo app na primeira escolha do cliente.
-4. **Storage** (opcional, se as fotos dos itens não estiverem em outra
-   URL) → "Get started" → suba as imagens dos itens e use a URL pública
-   (ou assinada) em `items.imageUrl`.
+   - Em Firestore Database → **Índices** → **Compostos**, crie os índices
+     descritos em [`firestore.indexes.json`](./firestore.indexes.json)
+     (ou publique tudo de uma vez com a Firebase CLI — veja abaixo).
+4. **Storage** (para as fotos dos itens, se não estiverem hospedadas em
+   outro lugar) → "Get started" → suba as imagens em `items/<algum-nome>`
+   e use a URL pública (ou assinada) em `items.imageUrl`. Cole o
+   conteúdo de [`storage.rules`](./storage.rules) em Storage → **Regras**
+   — permite leitura para qualquer usuário autenticado e bloqueia upload
+   pelo app (as imagens só sobem via Console ou Admin SDK, nesta fase).
 5. Em **Configurações do projeto → Seus apps**, adicione um app Web (ícone
    `</>`) e copie o objeto `firebaseConfig`.
+
+### Publicando regras e índices com a Firebase CLI (opcional)
+
+Em vez de colar `firestore.rules`/`storage.rules`/índices manualmente no
+Console, com a [Firebase CLI](https://firebase.google.com/docs/cli)
+instalada e autenticada (`firebase login`) dá pra publicar tudo de uma vez
+— `firebase.json` já referencia os três arquivos:
+
+```bash
+firebase use <id-do-seu-projeto>
+firebase deploy --only firestore:rules,firestore:indexes,storage:rules
+```
 
 ## Rodando localmente
 
@@ -193,14 +220,40 @@ npm run dev
 Acesse [http://localhost:5173](http://localhost:5173) — você será
 redirecionado para `/login`.
 
+## Populando dados de exemplo (`scripts/seed.js`)
+
+Script standalone com `firebase-admin` que cria os pacotes Bronze/Plus e 6
+itens de exemplo no Firestore (cesta de café da manhã, vinho, flores,
+chocolates, kit spa e kit chá) — evita ter que digitar tudo isso à mão no
+Console. Opcionalmente também cria um usuário + assinatura de teste.
+
+1. Firebase Console → **Configurações do projeto → Contas de serviço** →
+   "Gerar nova chave privada" → salve o arquivo baixado como
+   `scripts/serviceAccountKey.json` (esse caminho já está no
+   `.gitignore` — **nunca** commite essa chave).
+2. (Opcional) Para também criar um cliente de teste com assinatura
+   ativa: crie um usuário em **Authentication → Users → Add user**,
+   copie o **User UID** e cole na constante `TEST_USER_UID` no topo de
+   `scripts/seed.js`. Sem isso o script só popula pacotes e itens.
+3. Rode:
+
+   ```bash
+   npm run seed
+   ```
+
+O script usa `set({ merge: true })`, então rodar mais de uma vez é
+seguro — não duplica nem apaga documentos, só atualiza os campos que ele
+conhece.
+
 ## Scripts
 
-| Comando           | Descrição                          |
-| ------------------ | ------------------------------------ |
-| `npm run dev`       | Servidor de desenvolvimento (Vite)   |
-| `npm run build`     | Build de produção em `dist/`         |
-| `npm run preview`   | Serve o build de produção localmente |
-| `npm run lint`      | ESLint                               |
+| Comando           | Descrição                                       |
+| ------------------ | -------------------------------------------------- |
+| `npm run dev`       | Servidor de desenvolvimento (Vite)               |
+| `npm run build`     | Build de produção em `dist/`                     |
+| `npm run preview`   | Serve o build de produção localmente             |
+| `npm run lint`      | ESLint                                            |
+| `npm run seed`      | Popula pacotes/itens de exemplo no Firestore     |
 
 ## Fase 2 (não implementado neste MVP)
 

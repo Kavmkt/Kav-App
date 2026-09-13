@@ -37,4 +37,16 @@ export default [
       ],
     },
   },
+  {
+    // scripts/ roda em Node (via `npm run seed`), não no browser.
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+    },
+  },
 ];

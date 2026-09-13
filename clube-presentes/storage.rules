@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Regras de referência para o Storage do Clube de Presentes (MVP).
+// Cole em Firebase Console > Storage > Regras (ou faça deploy via
+// Firebase CLI: `firebase deploy --only storage:rules`).
+//
+// As fotos do catálogo (items.imageUrl) ficam em /items/**. Nesta fase não
+// há upload pelo app — as imagens são enviadas manualmente pela gestora
+// (Console ou Admin SDK), então a escrita pelo client fica sempre bloqueada.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /items/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Qualquer outro caminho fica fechado por padrão.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

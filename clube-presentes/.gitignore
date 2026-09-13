@@ -8,6 +8,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# credenciais do Firebase Admin (usadas por scripts/seed.js) — nunca commitar
+scripts/serviceAccountKey.json
+
 # editor / os
 .DS_Store
 .vscode/*
